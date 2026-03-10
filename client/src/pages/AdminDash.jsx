@@ -531,26 +531,34 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                   </tr>
                 </thead>
                 <tbody>
-                  {todayBookings.map(b => (
-                    <tr key={b.id} style={{ cursor: "pointer" }} onClick={() => setBDetail(b)}>
-                      <td style={{ fontFamily: "monospace", color: "var(--muted)", fontSize: 11 }}>{b.id}</td>
-                      <td style={{ fontWeight: 600 }}>{b.u}</td>
-                      <td>{b.svc}</td>
-                      <td style={{ color: "var(--muted)" }}>{b.stf}</td>
-                      <td>{b.t}</td>
-                      <td style={{ fontWeight: 700 }}>
-                        {b.p}
-                        {(b.additionalHours || 0) > 0 && (
-                          <div style={{ fontSize: 10, color: "var(--red)", marginTop: 2 }}>
-                            +{b.additionalHours}h Extra
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`badge ${bmap[b.s]}`}>{b.s[0].toUpperCase() + b.s.slice(1)}</span>
+                  {todayBookings.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: 28 }}>
+                        No bookings scheduled for today
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    todayBookings.map(b => (
+                      <tr key={b.id} style={{ cursor: "pointer" }} onClick={() => setBDetail(b)}>
+                        <td style={{ fontFamily: "monospace", color: "var(--muted)", fontSize: 11 }}>{b.id}</td>
+                        <td style={{ fontWeight: 600 }}>{b.u}</td>
+                        <td>{b.svc}</td>
+                        <td style={{ color: "var(--muted)" }}>{b.stf}</td>
+                        <td>{b.t}</td>
+                        <td style={{ fontWeight: 700 }}>
+                          {b.p}
+                          {(b.additionalHours || 0) > 0 && (
+                            <div style={{ fontSize: 10, color: "var(--red)", marginTop: 2 }}>
+                              +{b.additionalHours}h Extra
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`badge ${bmap[b.s]}`}>{b.s[0].toUpperCase() + b.s.slice(1)}</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

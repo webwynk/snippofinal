@@ -35,11 +35,7 @@ npm run build
 npm run start
 ```
 
-## Demo Credentials
 
-- Admin: `admin@snippoentertainment.com` / `admin123`
-- User: `alex@example.com` / `password123`
-- Staff: `marcus@snippoentertainment.com` / `staff123`
 
 ## Environment Variables
 
@@ -54,7 +50,7 @@ Copy examples if you want to customize:
 
 - Data is persisted in `server/data/db.json`.
 - Deleting `server/data/db.json` resets data to seed values on next API start.
-- In production, use `SEED_MODE=secure` and set `ADMIN_BOOTSTRAP_*` values to avoid demo credentials.
+- Setup an admin account via `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` in `.env`.
 - Generate JWT secret with:
   ```bash
   npm --prefix server run jwt:secret

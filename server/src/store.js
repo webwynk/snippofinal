@@ -1,6 +1,6 @@
 import pg from "pg";
 import { hashPassword } from "./auth.js";
-import { INITIAL_BOOKINGS, INITIAL_SERVICES, INITIAL_STAFF } from "./constants.js";
+import { INITIAL_SERVICES, INITIAL_STAFF } from "./constants.js";
 import { normalizeEmail } from "./utils.js";
 
 const { Pool } = pg;
@@ -54,31 +54,7 @@ export async function nextCounter(key) {
   return parseInt(res.rows[0].old_value);
 }
 
-async function seedDemo() {
-  const [adminHash, userHash, staffHash, guestHash] = await Promise.all([hashPassword("admin123"), hashPassword("password123"), hashPassword("staff123"), hashPassword("guest123")]);
-  const users = [
-    { id:"adm", name:"Admin", email:normalizeEmail("admin@snippoentertainment.com"), hash:adminHash, role:"admin", status:"active", roleTitle:"", staffId:null },
-    { id:"u1",  name:"Alex Morgan", email:normalizeEmail("alex@example.com"), hash:userHash, role:"user", status:"active", roleTitle:"", staffId:null },
-    { id:"u2",  name:"Jamie Liu", email:normalizeEmail("jamie@example.com"), hash:guestHash, role:"user", status:"active", roleTitle:"", staffId:null },
-    { id:"u3",  name:"Sam Torres", email:normalizeEmail("sam@example.com"), hash:guestHash, role:"user", status:"active", roleTitle:"", staffId:null },
-    { id:"u4",  name:"Casey Wu", email:normalizeEmail("casey@example.com"), hash:guestHash, role:"user", status:"active", roleTitle:"", staffId:null },
-    { id:"stf", name:"Marcus Roy", email:normalizeEmail("marcus@snippoentertainment.com"), hash:staffHash, role:"staff", status:"active", roleTitle:"Massage Therapist", staffId:2 },
-  ];
-  for (const u of users) {
-    await pool.query(`INSERT INTO users (id,name,email,password_hash,role,status,phone,role_title,staff_id) VALUES ($1,$2,$3,$4,$5,$6,'',$7,$8) ON CONFLICT (id) DO NOTHING`, [u.id,u.name,u.email,u.hash,u.role,u.status,u.roleTitle,u.staffId]);
-  }
-  for (const s of INITIAL_SERVICES) {
-    await pool.query(`INSERT INTO services (id,name,description,price,duration,image,active) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING`, [s.id,s.name,s.desc,s.price,s.dur,s.img,s.active]);
-  }
-  for (const s of INITIAL_STAFF) {
-    await pool.query(`INSERT INTO staff (id,name,role,email,initials,color,services,availability,active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO NOTHING`, [s.id,s.name,s.role,s.email,s.i,s.c,s.services,s.avail,s.active]);
-  }
-  for (const b of INITIAL_BOOKINGS) {
-    await pool.query(`INSERT INTO bookings (id,user_id,service_name,staff_name,date_label,time_label,price,status,paid,customer_name) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (id) DO NOTHING`, [b.id,b.userId,b.svc,b.stf,b.dt,b.t,b.p,b.s,b.paid,b.u]);
-  }
-  await pool.query(`INSERT INTO counters (key,value) VALUES ('user',5),('service',7),('staff',5),('pending',1),('booking',2411) ON CONFLICT (key) DO NOTHING`);
-  console.log("[db] Demo data seeded.");
-}
+
 
 async function seedSecure() {
   const adminEmail = normalizeEmail(process.env.ADMIN_BOOTSTRAP_EMAIL || "");
@@ -101,25 +77,47 @@ async function seedSecure() {
 export async function initStore() {
   await pool.query("SELECT 1");
   console.log("[db] Connected to PostgreSQL (Supabase)");
+
+  try {
+    const adminEmail = normalizeEmail(process.env.ADMIN_BOOTSTRAP_EMAIL || "");
+    const adminPassword = String(process.env.ADMIN_BOOTSTRAP_PASSWORD || "");
+    const adminName = String(process.env.ADMIN_BOOTSTRAP_NAME || "Admin").trim() || "Admin";
+    
+    if (adminEmail.includes("@") && adminPassword.length >= 6) {
+      const adminHash = await hashPassword(adminPassword);
+      await pool.query(
+        `INSERT INTO users (id,name,email,password_hash,role,status,phone) 
+         VALUES ('adm',$1,$2,$3,'admin','active','') 
+         ON CONFLICT (id) DO UPDATE SET email=$2, password_hash=$3, name=$1`, 
+        [adminName,adminEmail,adminHash]
+      );
+      console.log(`[db] Admin credentials synced for ${adminEmail}`);
+    }
+  } catch(err) {
+    console.warn("[db] Failed to sync admin credentials:", err.message);
+  }
+
   const res = await pool.query(`SELECT COUNT(*) FROM users`);
   const seeded = parseInt(res.rows[0].count) > 0;
   if (!seeded) {
-    const mode = String(process.env.SEED_MODE || "").trim().toLowerCase();
-    const isProduction = process.env.NODE_ENV === "production";
-    const seedMode = mode === "demo" || mode === "secure" ? mode : isProduction ? "secure" : "demo";
-    seedMode === "secure" ? await seedSecure() : await seedDemo();
+    try {
+      await seedSecure();
+    } catch (err) {
+      console.warn("[db] Skipping initialization:", err.message);
+    }
   }
 }
 
 export async function readData() {
-  const [sv,st,p,b] = await Promise.all([
+  const [us,sv,st,p,b] = await Promise.all([
+    pool.query(`SELECT * FROM users ORDER BY id`),
     pool.query(`SELECT * FROM services ORDER BY id`),
     pool.query(`SELECT * FROM staff ORDER BY id`),
     pool.query(`SELECT * FROM pending_staff`),
     pool.query(`SELECT * FROM bookings ORDER BY created_at DESC LIMIT 100`), // Safeguard for initialization
   ]);
   return {
-    users: [], // Don't fetch all users
+    users: us.rows.map(rowToUser),
     services: sv.rows.map(rowToService),
     staff: st.rows.map(rowToStaff),
     pendingStaff: p.rows.map(rowToPending),

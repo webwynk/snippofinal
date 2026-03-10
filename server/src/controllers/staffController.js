@@ -24,6 +24,7 @@ export const getStaffBookings = asyncHandler(async (req, res) => {
   res.json(data.bookings.filter((booking) => booking.stf === staffRef.name));
 });
 
+
 export const updateStaffServices = asyncHandler(async (req, res) => {
   const selected = Array.isArray(req.body?.services)
     ? [...new Set(req.body.services.map(Number).filter(Number.isFinite))]
