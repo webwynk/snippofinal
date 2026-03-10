@@ -10,6 +10,8 @@ import {
   updateBookingStatus,
   approvePendingStaff,
   rejectPendingStaff,
+  getStripeSettings,
+  saveStripeSettings
 } from "../controllers/adminController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 
@@ -27,5 +29,8 @@ router.delete("/staff/:id", deleteStaff);
 router.patch("/bookings/:id/status", updateBookingStatus);
 router.post("/pending/:id/approve", approvePendingStaff);
 router.post("/pending/:id/reject", rejectPendingStaff);
+
+router.get("/stripe-config", getStripeSettings);
+router.put("/stripe-config", saveStripeSettings);
 
 export default router;

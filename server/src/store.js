@@ -238,3 +238,18 @@ export async function getUserByEmail(email) {
   if (res.rows.length === 0) return null;
   return rowToUser(res.rows[0]);
 }
+
+export async function getStripeConfig() {
+  const res = await pool.query(`SELECT value FROM settings WHERE key = 'stripe_config'`);
+  if (res.rows.length === 0) return { publishableKey: "", secretKey: "" };
+  return res.rows[0].value;
+}
+
+export async function saveStripeConfig(config) {
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES ('stripe_config', $1) 
+     ON CONFLICT (key) DO UPDATE SET value = $1`,
+    [JSON.stringify(config)]
+  );
+  return config;
+}

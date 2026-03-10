@@ -264,6 +264,8 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
   const [bDetail, setBDetail] = useState(null);
   const [bFilter, setBFilter] = useState("all");
   const [copied, setCopied] = useState(false);
+  const [stripeConfig, setStripeConfig] = useState({ publishableKey: "", secretKey: "", connected: false });
+  const [isSavingStripe, setIsSavingStripe] = useState(false);
   const [pages, setPages] = useState({ bookings: 1, staff: 1, users: 1 });
   const [curPages, setCurPages] = useState({ bookings: 1, staff: 1, users: 1 });
   const [users, setUsers] = useState([]);
@@ -280,6 +282,16 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
     setServices(data.services || []);
     setStaff(data.staff || []);
     setPendingStaff(data.pendingStaff || []);
+    
+    // Load stripe config if entering payments tab
+    if ((targetTab || sec) === "payments") {
+      try {
+        const sc = await apiRequest("/admin/stripe-config", { token });
+        setStripeConfig(sc);
+      } catch (e) {
+        console.error("Failed to load stripe config", e);
+      }
+    }
     
     if (data.data) {
       if (sec === "bookings") setBookings(data.data);
@@ -387,6 +399,23 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
     }
   };
 
+  const saveStripeKeys = async () => {
+    setIsSavingStripe(true);
+    try {
+      const res = await apiRequest("/admin/stripe-config", {
+        method: "PUT",
+        token,
+        body: { publishableKey: stripeConfig.publishableKey, secretKey: stripeConfig.secretKey }
+      });
+      setStripeConfig(p => ({ ...p, connected: res.connected }));
+      toast(res.connected ? "Stripe connected successfully!" : "Stripe settings updated", "success");
+    } catch (e) {
+      toast(e.message || "Failed to save Stripe config", "error");
+    } finally {
+      setIsSavingStripe(false);
+    }
+  };
+
   const nav = [
     {
       id: "overview",
@@ -460,6 +489,16 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
       ),
       l: "Approvals",
       badge: pendingStaff.length,
+    },
+    {
+      id: "payments",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+      ),
+      l: "Payments",
     },
     {
       id: "embed",
@@ -864,6 +903,111 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                   Open Embed Page
                 </a>
               </div>
+            </div>
+          </>
+        )}
+
+        {sec === "payments" && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <h1 className="sh">Payments Settings</h1>
+                <p className="ss" style={{ marginBottom: 0 }}>Configure Stripe Integration</p>
+              </div>
+              <div>
+                {stripeConfig.connected ? (
+                  <span className="badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                    <span style={{ marginRight: 6 }}>●</span> Connected
+                  </span>
+                ) : (
+                  <span className="badge" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+                    Not Connected
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="glass" style={{ padding: "clamp(16px,4vw,28px)", maxWidth: 700, marginBottom: 24 }}>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Stripe API Keys</div>
+                <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Enter your Stripe API keys. These will be used to process payments through the booking widget.
+                  Find these in your Stripe Dashboard under Developers &gt; API keys.
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <label className="lbl">PUBLISHABLE KEY</label>
+                  <input 
+                    className="inp" 
+                    placeholder="pk_test_..." 
+                    value={stripeConfig.publishableKey} 
+                    onChange={e => setStripeConfig(p => ({ ...p, publishableKey: e.target.value }))} 
+                    style={{ fontFamily: stripeConfig.publishableKey ? "monospace" : "inherit" }}
+                  />
+                  <div style={{ fontSize: 11, color: "var(--muted2)", marginTop: 6 }}>Used on the frontend to create payment elements safely.</div>
+                </div>
+
+                <div>
+                  <label className="lbl">SECRET KEY</label>
+                  <input 
+                    className="inp" 
+                    type={stripeConfig.secretKey.includes("sk_...") ? "text" : "password"}
+                    placeholder="sk_test_..." 
+                    value={stripeConfig.secretKey} 
+                    onChange={e => setStripeConfig(p => ({ ...p, secretKey: e.target.value }))} 
+                    style={{ fontFamily: stripeConfig.secretKey ? "monospace" : "inherit" }}
+                  />
+                  <div style={{ fontSize: 11, color: "var(--muted2)", marginTop: 6 }}>Used on the server securely to process charges. Never share this.</div>
+                </div>
+
+                <div style={{ marginTop: 10 }}>
+                  <button 
+                    className="btn btn-p" 
+                    onClick={saveStripeKeys} 
+                    disabled={isSavingStripe || (!stripeConfig.publishableKey && !stripeConfig.secretKey)}
+                  >
+                    {isSavingStripe ? "Saving..." : "Save Settings"}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, marginTop: 30 }}>Recent Paid Bookings</h2>
+            <div className="glass tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Service</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.filter(b => b.paid).length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)", padding: 28 }}>
+                        No paid bookings yet
+                      </td>
+                    </tr>
+                  ) : (
+                    bookings.filter(b => b.paid).slice(0, 5).map(b => (
+                      <tr key={b.id}>
+                        <td style={{ fontWeight: 600 }}>{b.u}</td>
+                        <td style={{ color: "var(--muted)" }}>{b.svc}</td>
+                        <td style={{ color: "var(--muted)", whiteSpace: "nowrap" }}>{b.dt}</td>
+                        <td style={{ fontWeight: 700, color: "var(--success)" }}>{b.p}</td>
+                        <td>
+                          <span style={{ color: "var(--success)", fontSize: 12, fontWeight: 600 }}>✓ Paid</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </>
         )}

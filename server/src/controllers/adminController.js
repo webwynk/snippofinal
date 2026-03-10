@@ -1,4 +1,4 @@
-import { readData, updateData, nextCounter, getPagedBookings, getPagedStaff, getPagedUsers } from "../store.js";
+import { readData, updateData, nextCounter, getPagedBookings, getPagedStaff, getPagedUsers, getStripeConfig, saveStripeConfig } from "../store.js";
 import { normalizeEmail, initials, pickColor } from "../utils.js";
 import { asyncHandler, httpError } from "../utils/errorHelpers.js";
 import { userByEmail } from "../utils/userHelpers.js";
@@ -338,4 +338,34 @@ export const rejectPendingStaff = asyncHandler(async (req, res) => {
   });
 
   res.json({ pendingStaff });
+});
+
+export const getStripeSettings = asyncHandler(async (req, res) => {
+  const config = await getStripeConfig();
+  // Mask secret key before sending to frontend
+  const maskedSecret = config.secretKey 
+    ? `sk_...${config.secretKey.slice(-4)}` 
+    : "";
+  
+  res.json({
+    publishableKey: config.publishableKey || "",
+    secretKey: maskedSecret,
+    connected: !!(config.publishableKey && config.secretKey)
+  });
+});
+
+export const saveStripeSettings = asyncHandler(async (req, res) => {
+  const publishableKey = String(req.body?.publishableKey || "").trim();
+  const secretKey = String(req.body?.secretKey || "").trim();
+
+  // If secretKey comes back masked (i.e. unchanged by user), don't overwrite it
+  let configToSave = { publishableKey, secretKey };
+  
+  if (secretKey.includes("sk_...")) {
+    const existing = await getStripeConfig();
+    configToSave.secretKey = existing.secretKey;
+  }
+
+  await saveStripeConfig(configToSave);
+  res.json({ success: true, connected: !!(configToSave.publishableKey && configToSave.secretKey) });
 });
