@@ -304,7 +304,7 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
   };
 
   useEffect(() => {
-    if (["bookings", "staff", "users"].includes(sec)) {
+    if (["bookings", "staff", "users", "payments"].includes(sec)) {
       reloadAdminData(sec, curPages[sec]);
     }
   }, [sec, curPages]);
