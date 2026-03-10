@@ -1,0 +1,49 @@
+import { useState } from "react";
+import AuthModal from "../components/Shared/AuthModal";
+import BookingForm from "../components/Booking/BookingForm";
+
+export default function HomePage({ user, onUserAuth, onGoDash, services, staff, onCreateBooking, embedMode = false, embedHeader = null }) {
+  const [showAuth, setShowAuth] = useState(false);
+  const [authCb, setAuthCb] = useState(null);
+
+  const handleNeedAuth = cb => {
+    setAuthCb(() => cb);
+    setShowAuth(true);
+  };
+
+  const handleAuth = u => {
+    setShowAuth(false);
+    onUserAuth(u);
+    if (authCb) {
+      authCb(u);
+      setAuthCb(null);
+    }
+  };
+
+  const loggedUser = user;
+  
+  return (
+    <>
+      <div className="home" style={embedMode ? { paddingTop: 14, minHeight: "auto" } : undefined}>
+        <div className="home-form">
+          {embedMode && embedHeader}
+          <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.02em", marginBottom: 3 }}>
+            Book an Appointment
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 18 }}>
+            <span>Select your service, staff, and time to continue</span>
+          </div>
+          <BookingForm
+            user={loggedUser}
+            onNeedAuth={handleNeedAuth}
+            services={services}
+            staff={staff}
+            onCreateBooking={onCreateBooking}
+            onGoDash={onGoDash}
+          />
+        </div>
+      </div>
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuth={handleAuth} />}
+    </>
+  );
+}

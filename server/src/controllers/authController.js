@@ -1,0 +1,188 @@
+import { updateData, readData, nextCounter } from "../store.js";
+import { hashPassword, checkPassword, makeToken, sanitizeUser } from "../auth.js";
+import { normalizeEmail, initials, pickColor } from "../utils.js";
+import { httpError, asyncHandler } from "../utils/errorHelpers.js";
+import { userByEmail, resolveStaffForUser, resolvePendingForUser } from "../utils/userHelpers.js";
+
+export const registerUser = asyncHandler(async (req, res) => {
+  const name = String(req.body?.name || "").trim();
+  const email = normalizeEmail(req.body?.email);
+  const password = String(req.body?.password || "");
+  const phone = String(req.body?.phone || "").trim();
+
+  if (!name) throw httpError(400, "Name is required");
+  if (!email.includes("@")) throw httpError(400, "A valid email is required");
+  if (password.length < 6) throw httpError(400, "Password must be at least 6 characters");
+
+  let createdUser;
+  await updateData(async (data) => {
+    if (userByEmail(data, email)) {
+      throw httpError(409, "An account with this email already exists");
+    }
+
+    const idNumber = await nextCounter("user");
+    const user = {
+      id: `u${idNumber}`,
+      name,
+      email,
+      phone,
+      passwordHash: await hashPassword(password),
+      role: "user",
+      status: "active",
+    };
+
+    data.users.push(user);
+    createdUser = user;
+    return user;
+  });
+
+  const token = makeToken(createdUser);
+  res.status(201).json({ token, user: sanitizeUser(createdUser) });
+});
+
+export const loginUser = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const password = String(req.body?.password || "");
+
+  const data = await readData();
+  const user = userByEmail(data, email);
+  if (!user || user.role !== "user") {
+    throw httpError(401, "Invalid credentials");
+  }
+
+  const valid = await checkPassword(password, user.passwordHash);
+  if (!valid) throw httpError(401, "Invalid credentials");
+
+  res.json({ token: makeToken(user), user: sanitizeUser(user) });
+});
+
+export const loginAdmin = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const password = String(req.body?.password || "");
+
+  const data = await readData();
+  const user = userByEmail(data, email);
+  if (!user || user.role !== "admin") {
+    throw httpError(401, "Invalid credentials");
+  }
+
+  const valid = await checkPassword(password, user.passwordHash);
+  if (!valid) throw httpError(401, "Invalid credentials");
+
+  res.json({ token: makeToken(user), user: sanitizeUser(user) });
+});
+
+export const registerStaff = asyncHandler(async (req, res) => {
+  const name = String(req.body?.name || "").trim();
+  const email = normalizeEmail(req.body?.email);
+  const password = String(req.body?.password || "");
+  const designation = String(req.body?.designation || "").trim();
+  const phone = String(req.body?.phone || "").trim();
+
+  if (!name) throw httpError(400, "Name is required");
+  if (!designation) throw httpError(400, "Designation is required");
+  if (!email.includes("@")) throw httpError(400, "A valid email is required");
+  if (password.length < 6) throw httpError(400, "Password must be at least 6 characters");
+
+  let createdUser;
+  let pendingEntry;
+
+  await updateData(async (data) => {
+    if (userByEmail(data, email)) {
+      throw httpError(409, "An account with this email already exists");
+    }
+
+    const userId = `stf_${await nextCounter("user")}`;
+    const pendingId = `ps_${await nextCounter("pending")}`;
+
+    pendingEntry = {
+      id: pendingId,
+      userId,
+      name,
+      email,
+      phone,
+      role: designation,
+      requestedServices: [],
+      appliedAt: new Date().toLocaleString("en-US"),
+      i: initials(name),
+      c: pickColor(),
+      status: "pending",
+    };
+
+    createdUser = {
+      id: userId,
+      name,
+      email,
+      passwordHash: await hashPassword(password),
+      role: "staff",
+      status: "pending",
+      roleTitle: designation,
+      phone,
+      pendingId,
+    };
+
+    data.pendingStaff.push(pendingEntry);
+    data.users.push(createdUser);
+    return createdUser;
+  });
+
+  res.status(201).json({
+    token: makeToken(createdUser),
+    user: sanitizeUser(createdUser),
+    staffData: pendingEntry,
+  });
+});
+
+export const loginStaff = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const password = String(req.body?.password || "");
+
+  const data = await readData();
+  const user = userByEmail(data, email);
+  if (!user || user.role !== "staff") {
+    throw httpError(401, "Invalid credentials");
+  }
+
+  if (user.status === "rejected" || user.status === "disabled") {
+    throw httpError(403, "Your staff account is not active");
+  }
+
+  const valid = await checkPassword(password, user.passwordHash);
+  if (!valid) throw httpError(401, "Invalid credentials");
+
+  const response = {
+    token: makeToken(user),
+    user: sanitizeUser(user),
+  };
+
+  if (user.status === "pending") {
+    response.staffData = resolvePendingForUser(data, user);
+  } else {
+    response.staffRef = resolveStaffForUser(data, user);
+  }
+
+  res.json(response);
+});
+
+export const getMe = asyncHandler(async (req, res) => {
+  const data = await readData();
+  const user = data.users.find((item) => item.id === req.authUser.id);
+  if (!user) {
+    throw httpError(401, "Session invalid");
+  }
+
+  if (user.role === "staff" && (user.status === "rejected" || user.status === "disabled")) {
+    throw httpError(403, "Staff account inactive");
+  }
+
+  const payload = { user: sanitizeUser(user) };
+  if (user.role === "staff") {
+    if (user.status === "pending") {
+      payload.staffData = resolvePendingForUser(data, user);
+    } else {
+      payload.staffRef = resolveStaffForUser(data, user);
+    }
+  }
+
+  res.json(payload);
+});

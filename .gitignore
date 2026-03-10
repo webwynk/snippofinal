@@ -2,7 +2,6 @@ node_modules/
 client/node_modules/
 server/node_modules/
 server/data/db.json
-client/dist/
 .env
 server/.env
 dev.log
