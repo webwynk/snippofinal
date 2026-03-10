@@ -147,10 +147,19 @@ function S3({ selDate, selTime, onDate, onTime, busySlots, stf }) {
     return !stf.avail[availIndex];
   };
 
+  const to12h = t24 => {
+    const [h, m] = t24.split(":");
+    let hr = parseInt(h, 10);
+    const ampm = hr >= 12 ? "PM" : "AM";
+    if (hr > 12) hr -= 12;
+    if (hr === 0) hr = 12;
+    return `${hr}:${m} ${ampm}`;
+  };
+
   const isSlotDisabled = (t) => {
     if (!selDate) return true;
     if (isOffDay(selDate)) return true;
-    return blockedTimes.includes(t);
+    return blockedTimes.includes(to12h(t));
   };
 
   return (
@@ -222,7 +231,7 @@ function S3({ selDate, selTime, onDate, onTime, busySlots, stf }) {
                   onClick={() => !disabled && onTime(t)}
                 >
                   {t}
-                  {disabled ? (blockedTimes.includes(t) ? " ✕" : " Off") : ""}
+                  {disabled ? (blockedTimes.includes(to12h(t)) ? " ✕" : " Off") : ""}
                 </div>
               );
             })}
