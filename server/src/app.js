@@ -19,6 +19,23 @@ import staffRoutes from "./routes/staffRoutes.js";
 const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 
+// ── Resolve client/dist path ──────────────────────────────────────────────────
+const __filename2 = fileURLToPath(import.meta.url);
+const __dirname2 = path.dirname(__filename2);
+const distPath = path.join(__dirname2, "..", "..", "client", "dist");
+
+console.log("[Static] distPath resolved to:", distPath, "| exists:", fs.existsSync(distPath));
+
+// ── Serve static frontend assets FIRST (before CORS/helmet) ───────────────────
+// This ensures /assets/*.js and /assets/*.css are served correctly with proper
+// MIME types without interference from middleware like helmet or CORS.
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+} else {
+  console.warn("[Static] Warning: client/dist not found! Frontend will not be served.");
+}
+
+// ── Trust proxy ───────────────────────────────────────────────────────────────
 const trustProxy = String(process.env.TRUST_PROXY || (isProduction ? "true" : "false"))
   .trim()
   .toLowerCase();
@@ -26,14 +43,17 @@ if (trustProxy === "true" || trustProxy === "1") {
   app.set("trust proxy", 1);
 }
 
+// ── Allowed CORS origins ──────────────────────────────────────────────────────
 const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
 
+// ── Security & CORS middleware ─────────────────────────────────────────────────
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false, // Disabled — lets self-hosted React JS/CSS load without CSP blocks
   })
 );
 
@@ -53,7 +73,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use(globalLimiter);
 
-// API Routes
+// ── API Routes ────────────────────────────────────────────────────────────────
 app.use("/api", publicRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -61,16 +81,8 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/staff", staffRoutes);
 
-// ── SPA static file serving (production) ──────────────────────────────────────
-const __filename2 = fileURLToPath(import.meta.url);
-const __dirname2 = path.dirname(__filename2);
-const distPath = path.join(__dirname2, "..", "..", "client", "dist");
-
-console.log("[Static]", "distPath resolved to:", distPath, "exists:", fs.existsSync(distPath));
-
+// ── SPA Catch-all: serve index.html for all non-API routes ────────────────────
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  // Catch-all: serve index.html for client-side routes (SPA history mode)
   app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
     const indexFile = path.join(distPath, "index.html");
@@ -80,13 +92,11 @@ if (fs.existsSync(distPath)) {
       next();
     }
   });
-} else {
-  console.warn("[Static] Warning: client/dist not found! Frontend will not be served.");
 }
 
+// ── Global error handler ──────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
-  // Log the actual error to the console so it's visible in Render logs
   console.error("[Error Handler]", err.message, err.stack);
   const message = status >= 500 ? "Internal server error" : err.message;
   res.status(status).json({ error: message });
