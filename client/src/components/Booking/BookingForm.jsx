@@ -125,15 +125,15 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
   );
 }
 
-function S3({ selDate, selTime, onDate, onTime, bookings, stf }) {
+function S3({ selDate, selTime, onDate, onTime, busySlots, stf }) {
   const now = new Date();
   const [mn, setMn] = useState(now.getMonth());
   const [yr, setYr] = useState(now.getFullYear());
   const days = cal(yr, mn);
   const selStr = selDate ? `${selDate.getFullYear()}-${selDate.getMonth()}-${selDate.getDate()}` : "";
 
-  // Dynamic booking check
-  const busySlots = (bookings || [])
+  // Dynamic booking check from global busySlots
+  const blockedTimes = (busySlots || [])
     .filter(b => b.staffId === stf?.id && b.dt === (selDate ? selDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }) : ""))
     .map(b => b.t);
 
@@ -150,7 +150,7 @@ function S3({ selDate, selTime, onDate, onTime, bookings, stf }) {
   const isSlotDisabled = (t) => {
     if (!selDate) return true;
     if (isOffDay(selDate)) return true;
-    return busySlots.includes(t);
+    return blockedTimes.includes(t);
   };
 
   return (
@@ -222,7 +222,7 @@ function S3({ selDate, selTime, onDate, onTime, bookings, stf }) {
                   onClick={() => !disabled && onTime(t)}
                 >
                   {t}
-                  {disabled ? (busySlots.includes(t) ? " ✕" : " Off") : ""}
+                  {disabled ? (blockedTimes.includes(t) ? " ✕" : " Off") : ""}
                 </div>
               );
             })}
@@ -502,7 +502,7 @@ function S7({ svc, stf, date, time, booking, onDash, onRebook }) {
   );
 }
 
-export default function BookingForm({ user, onNeedAuth, services, staff, bookings, onCreateBooking, onGoDash }) {
+export default function BookingForm({ user, onNeedAuth, services, staff, bookings, busySlots, onCreateBooking, onGoDash }) {
   const [step, setStep] = useState(0);
   const [svc, setSvc] = useState(null);
   const [stf, setStf] = useState(null);
@@ -573,7 +573,7 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
       <div>
         {step === 0 && <S1 sel={svc} onSel={handleSvcSel} services={services} />}
         {step === 1 && <S2 sel={stf} onSel={setStf} staff={staff} svcId={svc?.id} onDetails={setSelectedStaff} />}
-        {step === 2 && <S3 selDate={date} selTime={time} onDate={setDate} onTime={setTime} bookings={bookings} stf={stf} />}
+        {step === 2 && <S3 selDate={date} selTime={time} onDate={setDate} onTime={setTime} busySlots={busySlots || bookings} stf={stf} />}
         {step === 3 && <S4 det={det} onChange={setDet} user={user} />}
         {step === 4 && <S5 svc={svc} stf={stf} date={date} time={time} />}
         {step === 5 && <S6 svc={svc} onSuccess={createBooking} />}

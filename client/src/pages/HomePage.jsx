@@ -2,7 +2,7 @@ import { useState } from "react";
 import AuthModal from "../components/Shared/AuthModal";
 import BookingForm from "../components/Booking/BookingForm";
 
-export default function HomePage({ user, onUserAuth, onGoDash, services, staff, bookings, onCreateBooking, embedMode = false, embedHeader = null }) {
+export default function HomePage({ user, onUserAuth, onGoDash, services, staff, bookings, busySlots, onCreateBooking, embedMode = false, embedHeader = null }) {
   const [showAuth, setShowAuth] = useState(false);
   const [authCb, setAuthCb] = useState(null);
 
@@ -39,6 +39,7 @@ export default function HomePage({ user, onUserAuth, onGoDash, services, staff, 
             services={services}
             staff={staff}
             bookings={bookings}
+            busySlots={busySlots} // Passed down for correct global slot disabling
             onCreateBooking={onCreateBooking}
             onGoDash={onGoDash}
           />

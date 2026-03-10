@@ -42,6 +42,7 @@ export default function App(){
   const [services,setServices]           = useState(SVCS);
   const [staff,setStaff]                 = useState(STAFF0);
   const [bookings,setBookings]           = useState(BKGS0);
+  const [globalBusySlots,setGlobalBusySlots] = useState([]);
   const [pending,setPending]             = useState([]);
   const [adminSec,setAdminSec]           = useState("overview");
   const [staffTab,setStaffTab]           = useState("schedule");
@@ -65,11 +66,12 @@ export default function App(){
     }
   };
 
-  const applyPublicData=data=>{
-    setServices(data?.services||SVCS);
-    setStaff(data?.staff||STAFF0);
-    setBookings(data?.bookings||[]);
-    setPending(data?.pendingStaff||[]);
+  const applyPublicData=(data)=>{
+    if(data.services)setServices(data.services);
+    if(data.staff)setStaff(data.staff);
+    if(data.bookings)setBookings(data.bookings);
+    if(data.busySlots)setGlobalBusySlots(data.busySlots);
+    if(data.pendingStaff)setPending(data.pendingStaff);
   };
 
   const loadBootstrap=async sessionToken=>{
@@ -115,7 +117,7 @@ export default function App(){
       try{
         await loadBootstrap(activeToken);
       }catch{
-        applyPublicData({services:SVCS,staff:STAFF0,bookings:BKGS0,pendingStaff:[]});
+        applyPublicData({services:SVCS,staff:STAFF0,bookings:BKGS0,busySlots:[],pendingStaff:[]});
       }
 
       if(!mounted)return;
@@ -287,7 +289,8 @@ export default function App(){
             onGoDash={() => goUserDash("bookings")}
             services={services}
             staff={staff}
-            bookings={bookings}
+            bookings={bookings} // For logged in user tracking
+            busySlots={globalBusySlots} // For disabling slots
             onCreateBooking={createBooking}
             embedMode={embedMode}
             embedHeader={embedMode?<PublicHeader

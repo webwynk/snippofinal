@@ -15,6 +15,11 @@ export const getBootstrap = asyncHandler(async (req, res) => {
 
   let bookings = [];
   let pendingStaff = [];
+  
+  // Scrubbed list of all upcoming/active bookings to block out timeslots globally
+  const busySlots = data.bookings
+    .filter(b => ["upcoming", "active"].includes(b.s))
+    .map(b => ({ staffId: b.staffId, dt: b.dt, t: b.t }));
 
   if (authUser) {
     if (authUser.role === "admin") {
@@ -38,6 +43,7 @@ export const getBootstrap = asyncHandler(async (req, res) => {
     services,
     staff,
     bookings,
+    busySlots,
     pendingStaff,
   });
 });
