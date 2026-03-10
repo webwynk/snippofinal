@@ -66,6 +66,8 @@ const __filename2 = fileURLToPath(import.meta.url);
 const __dirname2 = path.dirname(__filename2);
 const distPath = path.join(__dirname2, "..", "..", "client", "dist");
 
+console.log("[Static]", "distPath resolved to:", distPath, "exists:", fs.existsSync(distPath));
+
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   // Catch-all: serve index.html for client-side routes (SPA history mode)
@@ -78,6 +80,8 @@ if (fs.existsSync(distPath)) {
       next();
     }
   });
+} else {
+  console.warn("[Static] Warning: client/dist not found! Frontend will not be served.");
 }
 
 app.use((err, _req, res, _next) => {
