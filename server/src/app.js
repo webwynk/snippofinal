@@ -28,6 +28,7 @@ app.use(
   helmet({
     crossOriginResourcePolicy: false,
     contentSecurityPolicy: false, // Disabled so self-hosted React JS/CSS bundles load
+    frameguard: false, // Allow embedding in iframes on other websites (widget embed)
   })
 );
 
