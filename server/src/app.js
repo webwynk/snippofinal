@@ -82,6 +82,8 @@ if (fs.existsSync(distPath)) {
 
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
+  // Log the actual error to the console so it's visible in Render logs
+  console.error("[Error Handler]", err.message, err.stack);
   const message = status >= 500 ? "Internal server error" : err.message;
   res.status(status).json({ error: message });
 });
