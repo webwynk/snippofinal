@@ -94,10 +94,14 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/staff", staffRoutes);
 
-// ── SPA Catch-all: serve index.html for all non-API routes ────────────────────
+// ── SPA Catch-all: serve index.html for all non-API, non-asset routes ────────
 if (fs.existsSync(distPath)) {
   app.get(/.*/, (req, res, next) => {
+    // Skip API routes - handled by their own routers
     if (req.path.startsWith("/api/")) return next();
+    // Skip /assets/ - these are static files already handled by express.static above
+    // Without this, express would serve index.html instead of the JS/CSS bundles!
+    if (req.path.startsWith("/assets/")) return next();
     const indexFile = path.join(distPath, "index.html");
     if (fs.existsSync(indexFile)) {
       res.sendFile(indexFile);
