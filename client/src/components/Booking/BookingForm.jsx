@@ -553,7 +553,15 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
 
   const createBooking = async () => {
     if (!svc || !stf || !date || !time) throw new Error("Missing booking details");
-    const payload = { serviceId: svc.id, staffId: stf.id, date: date.toISOString(), time, details: det };
+    
+    // Best practice for global bookings: Send the literal calendar date (YYYY-MM-DD) 
+    // instead of an ISO string (which shifts the day based on local timezone offsets).
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const localDateString = `${y}-${m}-${d}`;
+
+    const payload = { serviceId: svc.id, staffId: stf.id, date: localDateString, time, details: det };
     const booking = await onCreateBooking?.(payload);
     setCreatedBooking(booking || null);
     setStep(6);
