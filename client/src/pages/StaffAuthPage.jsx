@@ -23,8 +23,8 @@ export default function StaffAuthPage({ onLogin, onBack }) {
       setErr("Enter your full name");
       return;
     }
-    if (tab === "register" && !f.designation.trim()) {
-      setErr("Enter your designation");
+    if (tab === "register" && !f.designation) {
+      setErr("Select your staff role");
       return;
     }
     setLoading(true);
@@ -62,7 +62,19 @@ export default function StaffAuthPage({ onLogin, onBack }) {
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {tab === "register" && <input className="inp" placeholder="Full Name" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />}
-          {tab === "register" && <input className="inp" placeholder="Designation (e.g. Massage Therapist)" value={f.designation} onChange={e => setF({ ...f, designation: e.target.value })} />}
+          {tab === "register" && (
+            <select
+              className="inp"
+              value={f.designation}
+              onChange={e => setF({ ...f, designation: e.target.value })}
+              style={{ appearance: 'none', paddingRight: 30 }}
+            >
+              <option value="" disabled selected>Select Staff Role</option>
+              <option value="Sound Designer">Sound Designer</option>
+              <option value="Photographer">Photographer</option>
+              <option value="Videographer">Videographer</option>
+            </select>
+          )}
           <input className="inp" type="email" placeholder="Email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} />
           <div style={{ position: "relative" }}>
             <input
