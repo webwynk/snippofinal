@@ -424,9 +424,11 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
   const todayKey = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
   const todayBookings = bookings.filter(b => b.dt.includes(todayKey));
   const iframeCode = `<iframe src="${embedUrl}" width="100%" height="900" style="border:0;max-width:100%;" loading="lazy" title="Snippo Entertainment Booking"></iframe>`;
+  const getPLimit = () => window.innerWidth < 640 ? 6 : 8;
 
   const reloadAdminData = async (targetTab, pageNum = 1) => {
-    const query = new URLSearchParams({ tab: targetTab || sec, page: pageNum, limit: 10 });
+    const limit = getPLimit();
+    const query = new URLSearchParams({ tab: targetTab || sec, page: pageNum, limit });
     const data = await apiRequest(`/admin/data?${query}`, { token });
     setServices(data.services || []);
     setStaff(data.staff || []);
@@ -495,9 +497,12 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
       if (delConfirm.type === "service") {
         await apiRequest(`/admin/services/${delConfirm.id}`, { method: "DELETE", token });
         toast("Service deleted", "info");
-      } else {
+      } else if (delConfirm.type === "staff") {
         await apiRequest(`/admin/staff/${delConfirm.id}`, { method: "DELETE", token });
         toast("Staff removed", "info");
+      } else if (delConfirm.type === "user") {
+        await apiRequest(`/admin/users/${delConfirm.id}`, { method: "DELETE", token });
+        toast("User account deleted", "info");
       }
       await reloadAdminData();
       setDelConfirm(null);
@@ -984,6 +989,18 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                             <button className="btn btn-g btn-sm" style={{ padding: "4px 10px", height: "auto" }} onClick={() => setViewingUserDetail(u)}>
                               Details
                             </button>
+                            {u.role !== "admin" && (
+                              <button 
+                                className="btn btn-o btn-sm" 
+                                style={{ padding: "4px 10px", height: "auto", color: "var(--red)", border: "1px solid var(--border-red)" }} 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDelConfirm({ type: "user", id: u.id, name: u.name });
+                                }}
+                              >
+                                Delete
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

@@ -249,6 +249,39 @@ export const deleteStaff = asyncHandler(async (req, res) => {
   res.status(204).end();
 });
 
+export const deleteUser = asyncHandler(async (req, res) => {
+  const id = String(req.params.id);
+  
+  // Prevent deleting self (main admin)
+  if (id === req.authUser.id) {
+    throw httpError(403, "You cannot delete your own account");
+  }
+
+  await updateData(async (data) => {
+    const userIndex = data.users.findIndex((u) => u.id === id);
+    if (userIndex === -1) throw httpError(404, "User not found");
+
+    const user = data.users[userIndex];
+    if (user.role === "admin") {
+      throw httpError(403, "Admin accounts cannot be deleted for safety");
+    }
+
+    // If user is staff, also remove their staff record
+    if (user.role === "staff" && user.staffId) {
+      data.staff = data.staff.filter(s => s.id !== user.staffId);
+    }
+
+    // Remove any bookings for this user? 
+    // Usually we keep them or mark as "Deleted User", but for simplicity here we keep data clean
+    data.bookings = data.bookings.filter(b => b.userId !== id);
+
+    data.users.splice(userIndex, 1);
+    return true;
+  });
+
+  res.status(204).end();
+});
+
 export const updateBookingStatus = asyncHandler(async (req, res) => {
   const id = String(req.params.id);
   const status = String(req.body?.status || "");

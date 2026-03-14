@@ -302,10 +302,12 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
   const [totalPages, setTotalPages] = useState(1);
   const [userBookings, setUserBookings] = useState([]);
   const { toasts, toast } = useToast();
+  const getPLimit = () => window.innerWidth < 640 ? 6 : 8;
 
   const loadBookings = async () => {
     try {
-      const res = await apiRequest(`/bookings?page=${page}&limit=10`, { token });
+      const limit = getPLimit();
+      const res = await apiRequest(`/bookings?page=${page}&limit=${limit}`, { token });
       setUserBookings(res.data || []);
       setTotalPages(res.pages || 1);
     } catch (e) {
