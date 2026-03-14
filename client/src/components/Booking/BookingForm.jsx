@@ -441,18 +441,6 @@ function S6({ svc, onSuccess }) {
             ⚠ {err}
           </div>
         )}
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--muted)",
-            marginTop: 9,
-            padding: "7px 10px",
-            background: "rgba(255,255,255,.04)",
-            borderRadius: 8,
-          }}
-        >
-          Test card: <strong style={{ color: "var(--text)" }}>4242 4242 4242 4242</strong> · 12/28 · 123
-        </div>
         <button
           className="btn btn-p"
           style={{ width: "100%", marginTop: 16, padding: 14, fontSize: 14 }}

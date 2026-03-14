@@ -232,7 +232,7 @@ function ExtensionModal({ b, onClose, onUpdated, token, toast }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
           <input 
             className="sinp" 
-            placeholder="Card Number (4242 4242...)" 
+            placeholder="Card Number" 
             value={card.num} 
             onChange={e => setCard({...card, num: e.target.value.replace(/\D/g,"").replace(/(.{4})/g,"$1 ").trim()})} 
             maxLength={19}
@@ -508,7 +508,7 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
                 <label className="lbl">CARD NUMBER</label>
                 <input
                   className="sinp"
-                  placeholder="4242 4242 4242 4242"
+                  placeholder="•••• •••• •••• ••••"
                   maxLength={19}
                   value={card.num}
                   onChange={e => setCard({ ...card, num: e.target.value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim() })}
