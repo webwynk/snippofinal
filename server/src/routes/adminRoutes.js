@@ -7,6 +7,7 @@ import {
   createStaff,
   updateStaff,
   deleteStaff,
+  deleteUser,
   updateBookingStatus,
   approvePendingStaff,
   rejectPendingStaff,
