@@ -325,9 +325,86 @@ function ApprovalDetailsModal({ staff, onApprove, onReject, onClose }) {
   );
 }
 
+function UserDetailsModal({ user, onClose }) {
+  return (
+    <div className="mov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal modal-lg" style={{ maxWidth: 500 }}>
+        <button
+          onClick={onClose}
+          style={{ position: "absolute", top: 11, right: 11, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 19, width: 32, height: 32, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          X
+        </button>
+        <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 18, letterSpacing: "-.02em" }}>User Details</div>
+        
+        <div style={{ display: "flex", gap: 20, marginBottom: 24 }}>
+          <div style={{ width: 80, height: 80, borderRadius: "50%", background: `linear-gradient(135deg,${user.c || COLORS[0]},rgba(0,0,0,.35))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, flexShrink: 0 }}>
+            {initials(user.name)}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>{user.name}</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span className={`badge ${user.role === "admin" ? "bu" : user.role === "staff" ? "ba" : "bc"}`}>{user.role}</span>
+              <span style={{ fontSize: 13, color: user.status === "active" ? "var(--success)" : "var(--muted)" }}>● {user.status}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+          <div>
+            <label className="lbl">EMAIL ADDRESS</label>
+            <div style={{ fontSize: 14, color: "var(--text)", wordBreak: "break-all" }}>{user.email}</div>
+          </div>
+          <div>
+            <label className="lbl">PHONE NUMBER</label>
+            <div style={{ fontSize: 14, color: "var(--text)" }}>{user.phone || "Not provided"}</div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label className="lbl">USER ID</label>
+          <div style={{ fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }}>{user.id}</div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label className="lbl">ID DOCUMENT IMAGE</label>
+          {user.idDocument ? (
+            <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
+              <img 
+                src={`/uploads/ids/${user.idDocument}`} 
+                alt="ID Document" 
+                style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block" }} 
+              />
+              <div style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
+                <a 
+                  href={`/uploads/ids/${user.idDocument}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, textDecoration: "none" }}
+                >
+                  View Full Image ↗
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: 20, textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: 12, color: "var(--muted)", fontSize: 13 }}>
+              No ID image uploaded
+            </div>
+          )}
+        </div>
+
+        <button className="btn btn-g" style={{ width: "100%" }} onClick={onClose}>
+          Close Details
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDash({ services, setServices, staff, setStaff, bookings, setBookings, pendingStaff, setPendingStaff, onSignOut, token, embedUrl, initialSec = "overview", onSecChange }) {
   const [sec, setSec] = useState(initialSec);
   const [viewingStaff, setViewingStaff] = useState(null);
+  const [viewingUserDetail, setViewingUserDetail] = useState(null);
   useEffect(() => { setSec(initialSec); }, [initialSec]);
   const changeSec = s => { setSec(s); onSecChange?.(s); };
   const [svcModal, setSvcModal] = useState(null);
@@ -918,7 +995,12 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                           )}
                         </td>
                         <td>
-                          <span style={{ color: u.status === "active" ? "var(--success)" : "var(--muted)" }}>● {u.status}</span>
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            <span style={{ color: u.status === "active" ? "var(--success)" : "var(--muted)" }}>● {u.status}</span>
+                            <button className="btn btn-g btn-sm" style={{ padding: "4px 10px", height: "auto" }} onClick={() => setViewingUserDetail(u)}>
+                              Details
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1128,6 +1210,7 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
       {staffModal && <StaffModal member={staffModal === "add" ? null : staffModal} services={services} onSave={saveStaff} onClose={() => setStaffModal(null)} />}
       {delConfirm && <Confirm msg={`Delete "${delConfirm.name}"? This action cannot be undone.`} onOk={doDelete} onCancel={() => setDelConfirm(null)} />}
       {bDetail && <BookingDetailModal booking={bDetail} onClose={() => setBDetail(null)} onStatusChange={updateStatus} />}
+      {viewingUserDetail && <UserDetailsModal user={viewingUserDetail} onClose={() => setViewingUserDetail(null)} />}
       <Toasts toasts={toasts} />
     </div>
   );
