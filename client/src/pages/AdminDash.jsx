@@ -287,13 +287,13 @@ function ApprovalDetailsModal({ staff, onApprove, onReject, onClose }) {
           {staff.idDocument ? (
             <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
               <img 
-                src={`${STATIC_BASE}/uploads/ids/${staff.idDocument}`} 
+                src={staff.idDocument.startsWith("data:") ? staff.idDocument : `${STATIC_BASE}/uploads/ids/${staff.idDocument}`} 
                 alt="ID Document" 
                 style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block" }} 
               />
               <div style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
                 <a 
-                  href={`${STATIC_BASE}/uploads/ids/${staff.idDocument}`} 
+                  href={staff.idDocument.startsWith("data:") ? staff.idDocument : `${STATIC_BASE}/uploads/ids/${staff.idDocument}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, textDecoration: "none" }}
@@ -371,13 +371,13 @@ function UserDetailsModal({ user, onClose }) {
           {user.idDocument ? (
             <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
               <img 
-                src={`${STATIC_BASE}/uploads/ids/${user.idDocument}`} 
+                src={user.idDocument.startsWith("data:") ? user.idDocument : `${STATIC_BASE}/uploads/ids/${user.idDocument}`} 
                 alt="ID Document" 
                 style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block" }} 
               />
               <div style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
                 <a 
-                  href={`${STATIC_BASE}/uploads/ids/${user.idDocument}`} 
+                  href={user.idDocument.startsWith("data:") ? user.idDocument : `${STATIC_BASE}/uploads/ids/${user.idDocument}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, textDecoration: "none" }}

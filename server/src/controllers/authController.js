@@ -3,6 +3,8 @@ import { hashPassword, checkPassword, makeToken, sanitizeUser } from "../auth.js
 import { normalizeEmail, initials, pickColor } from "../utils.js";
 import { httpError, asyncHandler } from "../utils/errorHelpers.js";
 import { userByEmail, resolveStaffForUser, resolvePendingForUser } from "../utils/userHelpers.js";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 export const registerUser = asyncHandler(async (req, res) => {
   const name = String(req.body?.name || "").trim();
@@ -15,6 +17,18 @@ export const registerUser = asyncHandler(async (req, res) => {
   if (password.length < 6) throw httpError(400, "Password must be at least 6 characters");
 
   let createdUser;
+  let idDocBase64 = null;
+
+  if (req.file) {
+    try {
+      const buffer = await fs.readFile(req.file.path);
+      idDocBase64 = `data:${req.file.mimetype};base64,${buffer.toString("base64")}`;
+      await fs.unlink(req.file.path); // Delete local temp file
+    } catch (err) {
+      console.error("[upload] Base64 conversion failed:", err);
+    }
+  }
+
   await updateData(async (data) => {
     if (await getUserByEmail(email)) {
       throw httpError(409, "An account with this email already exists");
@@ -29,7 +43,7 @@ export const registerUser = asyncHandler(async (req, res) => {
       passwordHash: await hashPassword(password),
       role: "user",
       status: "active",
-      idDocument: req.file ? req.file.filename : null,
+      idDocument: idDocBase64,
     };
 
     data.users.push(user);
@@ -85,6 +99,17 @@ export const registerStaff = asyncHandler(async (req, res) => {
 
   let createdUser;
   let pendingEntry;
+  let idDocBase64 = null;
+
+  if (req.file) {
+    try {
+      const buffer = await fs.readFile(req.file.path);
+      idDocBase64 = `data:${req.file.mimetype};base64,${buffer.toString("base64")}`;
+      await fs.unlink(req.file.path); // Delete local temp file
+    } catch (err) {
+      console.error("[upload] Base64 conversion failed:", err);
+    }
+  }
 
   await updateData(async (data) => {
     if (await getUserByEmail(email)) {
@@ -106,7 +131,7 @@ export const registerStaff = asyncHandler(async (req, res) => {
       i: initials(name),
       c: pickColor(),
       status: "pending",
-      idDocument: req.file ? req.file.filename : null,
+      idDocument: idDocBase64,
     };
 
     createdUser = {
@@ -119,7 +144,7 @@ export const registerStaff = asyncHandler(async (req, res) => {
       roleTitle: designation,
       phone,
       pendingId,
-      idDocument: req.file ? req.file.filename : null,
+      idDocument: idDocBase64,
     };
 
     data.pendingStaff.push(pendingEntry);
