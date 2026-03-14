@@ -586,9 +586,7 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
           <button className="btn btn-g btn-sm" onClick={back} disabled={step === 0}>
             ← Back
           </button>
-          <span style={{ fontSize: 11, color: "var(--muted)" }}>
-            Step {step + 1}/{STEPS.length}
-          </span>
+
           {step < 5 && (
             <button className="btn btn-p btn-sm" onClick={next} disabled={!canNext()}>
               {step === 4 ? "Pay Now →" : "Continue →"}

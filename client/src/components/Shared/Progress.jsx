@@ -17,9 +17,7 @@ export default function Progress({ step }) {
       <div className="prog-mini">
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 1 }}>{STEPS[step]}</div>
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>
-            Step {step + 1} of {STEPS.length}
-          </div>
+
         </div>
         <div className="pm-dots">
           {STEPS.map((_, i) => (
