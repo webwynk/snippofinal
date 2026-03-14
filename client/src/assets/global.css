@@ -79,6 +79,8 @@ select.inp option{background:#0f0f1e;color:var(--text);padding:10px;}
 /* HOME LAYOUT */
 .home{padding-top:var(--nh);padding-inline:clamp(14px,3vw,28px);padding-bottom:clamp(16px,3vw,28px);min-height:100vh;}
 .home-form{max-width:960px;margin:0 auto;background:rgba(8,8,16,0.7);backdrop-filter:blur(20px);padding:clamp(22px,4vw,36px);border:1px solid var(--border);border-radius:20px;}
+.home-title{font-size:clamp(20px,5vw,28px);font-weight:800;letter-spacing:-.02em;margin-bottom:6px;text-align:center;}
+.home-sub{font-size:clamp(12px,3.5vw,14px);color:var(--muted);margin-bottom:clamp(20px,6vw,35px);text-align:center;}
 .hero-tag{display:inline-flex;align-items:center;gap:8px;background:var(--red-dim);border:1px solid var(--border-red);border-radius:20px;padding:5px 14px;font-size:12px;color:var(--red);font-weight:600;margin-bottom:22px;width:fit-content;}
 .hero-h1{font-size:clamp(34px,5.5vw,70px);font-weight:900;line-height:1.05;letter-spacing:-.035em;margin-bottom:18px;}
 .hero-sub{font-size:clamp(14px,1.8vw,16px);color:var(--muted);line-height:1.75;max-width:420px;margin-bottom:28px;}
