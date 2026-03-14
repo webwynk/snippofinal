@@ -29,6 +29,7 @@ export const registerUser = asyncHandler(async (req, res) => {
       passwordHash: await hashPassword(password),
       role: "user",
       status: "active",
+      idDocument: req.file ? req.file.filename : null,
     };
 
     data.users.push(user);

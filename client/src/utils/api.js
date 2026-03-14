@@ -2,13 +2,14 @@ const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "");
 const SESSION_KEY = "snippo_session";
 
 export async function apiRequest(path, { method = "GET", body, token } = {}) {
+  const isFormData = body instanceof FormData;
   const res = await fetch(`${API_BASE}${path.startsWith("/") ? path : `/${path}`}`, {
     method,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {})
+    ...(body !== undefined ? { body: isFormData ? body : JSON.stringify(body) } : {})
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) {

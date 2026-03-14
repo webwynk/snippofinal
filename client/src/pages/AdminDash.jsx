@@ -809,13 +809,14 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>ID Image</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)", padding: 28 }}>
+                      <td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: 28 }}>
                         No users found
                       </td>
                     </tr>
@@ -827,6 +828,22 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                         <td>{u.email}</td>
                         <td>
                           <span className={`badge ${u.role === "admin" ? "bu" : "ba"}`}>{u.role}</span>
+                        </td>
+                        <td>
+                          {u.idDocument ? (
+                            <a 
+                              href={`/uploads/ids/${u.idDocument}`} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="badge bu"
+                              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                              View ID
+                            </a>
+                          ) : (
+                            <span style={{ color: "var(--muted)", fontSize: 11 }}>None</span>
+                          )}
                         </td>
                         <td>
                           <span style={{ color: u.status === "active" ? "var(--success)" : "var(--muted)" }}>● {u.status}</span>

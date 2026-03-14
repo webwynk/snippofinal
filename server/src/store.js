@@ -12,7 +12,7 @@ export const pool = new Pool({
 
 export function rowToUser(r) {
   if (!r) return null;
-  return { id: r.id, name: r.name, email: r.email, passwordHash: r.password_hash, role: r.role, status: r.status, phone: r.phone || "", roleTitle: r.role_title || "", staffId: r.staff_id || null, pendingId: r.pending_id || null };
+  return { id: r.id, name: r.name, email: r.email, passwordHash: r.password_hash, role: r.role, status: r.status, phone: r.phone || "", roleTitle: r.role_title || "", staffId: r.staff_id || null, pendingId: r.pending_id || null, idDocument: r.id_document || null };
 }
 function rowToService(r) {
   if (!r) return null;
@@ -175,8 +175,8 @@ export async function updateData(mutator) {
 
   if (JSON.stringify(data.users) !== before.users) {
     for (const u of data.users) {
-      await pool.query(`INSERT INTO users (id,name,email,password_hash,role,status,phone,role_title,staff_id,pending_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (id) DO UPDATE SET name=$2,email=$3,password_hash=$4,role=$5,status=$6,phone=$7,role_title=$8,staff_id=$9,pending_id=$10`,
-        [u.id,u.name,u.email,u.passwordHash,u.role,u.status,u.phone||"",u.roleTitle||"",u.staffId||null,u.pendingId||null]);
+      await pool.query(`INSERT INTO users (id,name,email,password_hash,role,status,phone,role_title,staff_id,pending_id,id_document) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (id) DO UPDATE SET name=$2,email=$3,password_hash=$4,role=$5,status=$6,phone=$7,role_title=$8,staff_id=$9,pending_id=$10,id_document=$11`,
+        [u.id,u.name,u.email,u.passwordHash,u.role,u.status,u.phone||"",u.roleTitle||"",u.staffId||null,u.pendingId||null,u.idDocument||null]);
     }
     const ids = data.users.map(u=>u.id);
     if (ids.length > 0) await pool.query(`DELETE FROM users WHERE id != ALL($1::text[])`, [ids]);
