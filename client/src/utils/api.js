@@ -1,4 +1,5 @@
 const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "");
+export const STATIC_BASE = API_BASE.replace(/\/api$/, "");
 const SESSION_KEY = "snippo_session";
 
 export async function apiRequest(path, { method = "GET", body, token } = {}) {

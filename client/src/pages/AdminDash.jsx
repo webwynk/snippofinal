@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Toasts, { useToast } from "../components/Shared/Toasts";
 import Confirm from "../components/Shared/Confirm";
-import { apiRequest } from "../utils/api";
+import { apiRequest, STATIC_BASE } from "../utils/api";
 import { DAYS, COLORS, initials, fmtDur } from "../utils/helpers";
 import Pagination from "../components/Shared/Pagination";
 
@@ -287,13 +287,13 @@ function ApprovalDetailsModal({ staff, onApprove, onReject, onClose }) {
           {staff.idDocument ? (
             <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
               <img 
-                src={`/uploads/ids/${staff.idDocument}`} 
+                src={`${STATIC_BASE}/uploads/ids/${staff.idDocument}`} 
                 alt="ID Document" 
                 style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block" }} 
               />
               <div style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
                 <a 
-                  href={`/uploads/ids/${staff.idDocument}`} 
+                  href={`${STATIC_BASE}/uploads/ids/${staff.idDocument}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, textDecoration: "none" }}
@@ -371,13 +371,13 @@ function UserDetailsModal({ user, onClose }) {
           {user.idDocument ? (
             <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
               <img 
-                src={`/uploads/ids/${user.idDocument}`} 
+                src={`${STATIC_BASE}/uploads/ids/${user.idDocument}`} 
                 alt="ID Document" 
                 style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block" }} 
               />
               <div style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
                 <a 
-                  href={`/uploads/ids/${user.idDocument}`} 
+                  href={`${STATIC_BASE}/uploads/ids/${user.idDocument}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, textDecoration: "none" }}
@@ -980,14 +980,8 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                         </td>
                         <td>
                           {u.idDocument ? (
-                            <a 
-                              href={`/uploads/ids/${u.idDocument}`} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="badge bu"
-                              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
-                            >
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <a href={`${STATIC_BASE}/uploads/ids/${u.idDocument}`} target="_blank" rel="noreferrer" className="badge bg-p" style={{ fontSize: 10, textDecoration: 'none' }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                               View ID
                             </a>
                           ) : (
