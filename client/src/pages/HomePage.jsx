@@ -28,10 +28,10 @@ export default function HomePage({ user, onUserAuth, onGoDash, services, staff, 
         <div className="home-form">
           {embedMode && embedHeader}
           <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.02em", marginBottom: 3 }}>
-            Book an Appointment
+            Book Your Studio Session
           </div>
           <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 18 }}>
-            <span>Select your service, staff, and time to continue</span>
+            <span>Reserve your recording, photography, or videography session in minutes.</span>
           </div>
           <BookingForm
             user={loggedUser}

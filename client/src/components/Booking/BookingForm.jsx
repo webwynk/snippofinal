@@ -6,8 +6,7 @@ import StaffDetailsModal from "../Shared/StaffDetailsModal";
 function S1({ sel, onSel, services }) {
   return (
     <div className="se">
-      <h2 className="sh">Choose a Service</h2>
-      <p className="ss">Select the treatment you'd like to book</p>
+
       <div className="sg">
         {services.filter(s => s.active).map(s => (
           <div key={s.id} className={`scard ${sel?.id === s.id ? "sel" : ""}`} onClick={() => onSel(s)}>
@@ -33,8 +32,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
   const list = staff.filter(s => s.active && (!svcId || s.services.includes(svcId)));
   return (
     <div className="se">
-      <h2 className="sh">Choose Your Specialist</h2>
-      <p className="ss">Available for your selected service</p>
+
       {list.length === 0 ? (
         <div className="glass" style={{ padding: 28, textAlign: "center", color: "var(--muted)" }}>
           No specialists available for this service
@@ -164,8 +162,7 @@ function S3({ selDate, selTime, onDate, onTime, busySlots, stf }) {
 
   return (
     <div className="se">
-      <h2 className="sh">Pick a Date & Time</h2>
-      <p className="ss">Strikethrough slots are already booked</p>
+
       <div className="dtg">
         <div className="glass" style={{ padding: "clamp(12px,3vw,18px)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -255,10 +252,7 @@ function S4({ det, onChange, user }) {
   const v = k => det[k] ?? (k === "name" ? user?.name : k === "email" ? user?.email : k === "phone" ? user?.phone : "") ?? "";
   return (
     <div className="se" style={{ maxWidth: 500, margin: "0 auto" }}>
-      <div style={{ textAlign: "center" }}>
-        <h2 className="sh">Your Details</h2>
-        <p className="ss">Pre-filled from your account</p>
-      </div>
+
       <div className="glass" style={{ padding: "clamp(14px,4vw,24px)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
           {[
@@ -296,8 +290,7 @@ function S5({ svc, stf, date, time }) {
   return (
     <div className="se" style={{ maxWidth: 520, margin: "0 auto" }}>
       <div style={{ textAlign: "center" }}>
-        <h2 className="sh">Booking Summary</h2>
-        <p className="ss">Review your appointment before payment</p>
+
       </div>
       <div className="glass" style={{ padding: "clamp(14px,4vw,24px)" }}>
         <div
@@ -370,10 +363,7 @@ function S6({ svc, onSuccess }) {
   };
   return (
     <div className="se" style={{ maxWidth: 460, margin: "0 auto" }}>
-      <div style={{ textAlign: "center" }}>
-        <h2 className="sh">Secure Payment</h2>
-        <p className="ss">Encrypted and secure checkout</p>
-      </div>
+
       <div className="glass" style={{ padding: "clamp(14px,4vw,24px)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <span style={{ fontSize: 14, fontWeight: 600 }}>Amount due</span>
