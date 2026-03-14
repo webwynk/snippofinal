@@ -38,7 +38,7 @@ function rowToStaff(r) {
 }
 function rowToPending(r) {
   if (!r) return null;
-  return { id: r.id, userId: r.user_id, name: r.name, email: r.email, phone: r.phone || "", role: r.role || "", requestedServices: r.requested_services || [], appliedAt: r.applied_at || "", i: r.initials || "", c: r.color || "#E63946", status: r.status || "pending" };
+  return { id: r.id, userId: r.user_id, name: r.name, email: r.email, phone: r.phone || "", role: r.role || "", requestedServices: r.requested_services || [], appliedAt: r.applied_at || "", i: r.initials || "", c: r.color || "#E63946", status: r.status || "pending", idDocument: r.id_document || null };
 }
 function rowToBooking(r) {
   if (!r) return null;
@@ -211,8 +211,8 @@ export async function updateData(mutator) {
 
   if (JSON.stringify(data.pendingStaff) !== before.pendingStaff) {
     for (const p of data.pendingStaff) {
-      await pool.query(`INSERT INTO pending_staff (id,user_id,name,email,phone,role,requested_services,applied_at,initials,color,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (id) DO UPDATE SET user_id=$2,name=$3,email=$4,phone=$5,role=$6,requested_services=$7,applied_at=$8,initials=$9,color=$10,status=$11`,
-        [p.id,p.userId,p.name,p.email,p.phone||"",p.role||"",p.requestedServices||[],p.appliedAt||"",p.i||"",p.c||"#E63946",p.status||"pending"]);
+      await pool.query(`INSERT INTO pending_staff (id,user_id,name,email,phone,role,requested_services,applied_at,initials,color,status,id_document) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (id) DO UPDATE SET user_id=$2,name=$3,email=$4,phone=$5,role=$6,requested_services=$7,applied_at=$8,initials=$9,color=$10,status=$11,id_document=$12`,
+        [p.id,p.userId,p.name,p.email,p.phone||"",p.role||"",p.requestedServices||[],p.appliedAt||"",p.i||"",p.c||"#E63946",p.status||"pending",p.idDocument||null]);
     }
     const ids = data.pendingStaff.map(p=>p.id);
     if (ids.length > 0) await pool.query(`DELETE FROM pending_staff WHERE id != ALL($1::text[])`, [ids]);

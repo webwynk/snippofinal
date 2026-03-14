@@ -254,8 +254,80 @@ function BookingDetailModal({ booking, onClose, onStatusChange }) {
   );
 }
 
+function ApprovalDetailsModal({ staff, onApprove, onReject, onClose }) {
+  return (
+    <div className="mov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal modal-lg" style={{ maxWidth: 500 }}>
+        <button
+          onClick={onClose}
+          style={{ position: "absolute", top: 11, right: 11, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 19, width: 32, height: 32, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          X
+        </button>
+        <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 18, letterSpacing: "-.02em" }}>Staff Application Details</div>
+        
+        <div style={{ display: "flex", gap: 20, marginBottom: 20 }}>
+          <div style={{ width: 80, height: 80, borderRadius: "50%", background: `linear-gradient(135deg,${staff.c || "#E63946"},rgba(0,0,0,.35))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 800, flexShrink: 0 }}>
+            {staff.i}
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>{staff.name}</div>
+            <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 6 }}>{staff.role}</div>
+            <div style={{ fontSize: 13, background: "rgba(255,255,255,0.05)", padding: "4px 10px", borderRadius: 6, display: "inline-block" }}>{staff.email}</div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label className="lbl">PHONE NUMBER</label>
+          <div style={{ fontSize: 14, color: "var(--text)" }}>{staff.phone || "Not provided"}</div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label className="lbl">ID DOCUMENT IMAGE</label>
+          {staff.idDocument ? (
+            <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
+              <img 
+                src={`/uploads/ids/${staff.idDocument}`} 
+                alt="ID Document" 
+                style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block" }} 
+              />
+              <div style={{ padding: 10, textAlign: "center", background: "rgba(255,255,255,0.03)" }}>
+                <a 
+                  href={`/uploads/ids/${staff.idDocument}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, textDecoration: "none" }}
+                >
+                  View Full Image ↗
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: 20, textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: 12, color: "var(--muted)", fontSize: 13 }}>
+              No ID image uploaded
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-g" style={{ flex: 1 }} onClick={onClose}>
+            Back
+          </button>
+          <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => { onReject(staff.id); onClose(); }}>
+            Reject Application
+          </button>
+          <button className="btn btn-success" style={{ flex: 1.5 }} onClick={() => { onApprove(staff); onClose(); }}>
+            Approve & Activate
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDash({ services, setServices, staff, setStaff, bookings, setBookings, pendingStaff, setPendingStaff, onSignOut, token, embedUrl, initialSec = "overview", onSecChange }) {
   const [sec, setSec] = useState(initialSec);
+  const [viewingStaff, setViewingStaff] = useState(null);
   useEffect(() => { setSec(initialSec); }, [initialSec]);
   const changeSec = s => { setSec(s); onSecChange?.(s); };
   const [svcModal, setSvcModal] = useState(null);
@@ -887,12 +959,9 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                         </div>
                         <div style={{ fontSize: 11, color: "var(--muted2)" }}>Applied: {p.appliedAt}</div>
                       </div>
-                      <div style={{ display: "flex", gap: 7, flexShrink: 0, flexWrap: "wrap" }}>
-                        <button className="btn btn-success btn-sm" onClick={() => approveStaff(p)}>
-                          Approve & Activate
-                        </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => rejectStaff(p.id)}>
-                          Reject
+                      <div style={{ display: "flex", gap: 7, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
+                        <button className="btn btn-g btn-sm" onClick={() => setViewingStaff(p)}>
+                          View Details
                         </button>
                       </div>
                     </div>
@@ -901,6 +970,15 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
               </div>
             )}
           </>
+        )}
+
+        {viewingStaff && (
+          <ApprovalDetailsModal 
+            staff={viewingStaff} 
+            onApprove={approveStaff} 
+            onReject={rejectStaff} 
+            onClose={() => setViewingStaff(null)} 
+          />
         )}
 
         {sec === "embed" && (

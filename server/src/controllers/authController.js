@@ -106,6 +106,7 @@ export const registerStaff = asyncHandler(async (req, res) => {
       i: initials(name),
       c: pickColor(),
       status: "pending",
+      idDocument: req.file ? req.file.filename : null,
     };
 
     createdUser = {
@@ -118,6 +119,7 @@ export const registerStaff = asyncHandler(async (req, res) => {
       roleTitle: designation,
       phone,
       pendingId,
+      idDocument: req.file ? req.file.filename : null,
     };
 
     data.pendingStaff.push(pendingEntry);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import BrandLogo from "../components/Shared/BrandLogo";
 import { apiRequest } from "../utils/api";
 
@@ -7,7 +7,9 @@ export default function StaffAuthPage({ onLogin, onBack }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [f, setF] = useState({ name: "", email: "", pass: "", designation: "", phone: "" });
+  const [idFile, setIdFile] = useState(null);
   const [showPass, setShowPass] = useState(false);
+  const fileInputRef = useRef(null);
 
   const submit = async () => {
     setErr("");
@@ -19,19 +21,42 @@ export default function StaffAuthPage({ onLogin, onBack }) {
       setErr("Password min 6 characters");
       return;
     }
-    if (tab === "register" && !f.name.trim()) {
-      setErr("Enter your full name");
-      return;
-    }
-    if (tab === "register" && !f.designation) {
-      setErr("Select your staff role");
-      return;
+    if (tab === "register") {
+      if (!f.name.trim()) {
+        setErr("Enter your full name");
+        return;
+      }
+      if (!f.designation) {
+        setErr("Select your staff role");
+        return;
+      }
+      if (!idFile) {
+        setErr("Please upload your ID image");
+        return;
+      }
     }
     setLoading(true);
     try {
-      const payload = tab === "login"
-        ? await apiRequest("/auth/login-staff", { method: "POST", body: { email: f.email, password: f.pass } })
-        : await apiRequest("/auth/register-staff", { method: "POST", body: { name: f.name, email: f.email, password: f.pass, designation: f.designation, phone: f.phone } });
+      let payload;
+      if (tab === "login") {
+        payload = await apiRequest("/auth/login-staff", { 
+          method: "POST", 
+          body: { email: f.email, password: f.pass } 
+        });
+      } else {
+        const formData = new FormData();
+        formData.append("name", f.name);
+        formData.append("email", f.email);
+        formData.append("password", f.pass);
+        formData.append("designation", f.designation);
+        formData.append("phone", f.phone);
+        if (idFile) formData.append("idDocument", idFile);
+
+        payload = await apiRequest("/auth/register-staff", { 
+          method: "POST", 
+          body: formData 
+        });
+      }
       onLogin(payload);
     } catch (e) {
       setErr(e.message || "Authentication failed");
@@ -113,7 +138,36 @@ export default function StaffAuthPage({ onLogin, onBack }) {
               )}
             </button>
           </div>
-          {tab === "register" && <input className="inp" type="tel" placeholder="Phone (optional)" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} />}
+          {tab === "register" && (
+            <>
+              <input className="inp" type="tel" placeholder="Phone (optional)" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 12, color: "var(--muted)", marginLeft: 4 }}>Provide your ID image</label>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: "2px dashed var(--border)",
+                    borderRadius: 10,
+                    padding: "12px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    color: idFile ? "var(--text)" : "var(--muted)",
+                    background: "rgba(255,255,255,0.02)"
+                  }}
+                >
+                  {idFile ? `📄 ${idFile.name}` : "Click to upload ID image"}
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: "none" }} 
+                  accept="image/*"
+                  onChange={(e) => setIdFile(e.target.files[0])}
+                />
+              </div>
+            </>
+          )}
         </div>
         {err && (
           <div style={{ color: "var(--red)", fontSize: 12, marginTop: 9, padding: "9px 11px", background: "rgba(230,57,70,.08)", borderRadius: 8, whiteSpace: "pre-line" }}>

@@ -20,7 +20,7 @@ router.use(authLimiter);
 router.post("/register-user", upload.single("idDocument"), registerUser);
 router.post("/login-user", loginUser);
 router.post("/login-admin", loginAdmin);
-router.post("/register-staff", registerStaff);
+router.post("/register-staff", upload.single("idDocument"), registerStaff);
 router.post("/login-staff", loginStaff);
 
 export default router;
