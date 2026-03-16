@@ -44,6 +44,10 @@ function rowToBooking(r) {
   if (!r) return null;
   return { id: r.id, userId: r.user_id, svc: r.service_name, stf: r.staff_name, dt: r.date_label, t: r.time_label, p: r.price, s: r.status, paid: r.paid, u: r.customer_name, serviceId: r.service_id, staffId: r.staff_id, notes: r.notes || "", createdAt: r.created_at, additionalHours: r.additional_hours || 0, additionalCost: parseFloat(r.additional_cost || 0), originalDuration: r.original_duration || "" };
 }
+function rowToEmailTemplate(r) {
+  if (!r) return null;
+  return { id: r.id, subject: r.subject, body: r.body };
+}
 
 export async function nextCounter(key) {
   const res = await pool.query(`UPDATE counters SET value = value + 1 WHERE key = $1 RETURNING value - 1 AS old_value`, [key]);
@@ -105,6 +109,33 @@ export async function initStore() {
     } catch (err) {
       console.warn("[db] Skipping initialization:", err.message);
     }
+  }
+
+  // Ensure email_templates table exists
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_templates (
+      id TEXT PRIMARY KEY,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL
+    )
+  `);
+
+  // Initial templates seed
+  const templates = [
+    { id: 'welcome_user', subject: 'Welcome to Snippo Booking!', body: '<p>Hello {{name}},</p><p>Your account has been successfully created. You can now book services and manage your appointments online.</p><p>See you soon!</p>' },
+    { id: 'user_booking_confirmation', subject: 'Booking Confirmed - {{bookingId}}', body: '<p>Hello <strong>{{name}}</strong>,</p><p>Your booking has been successfully scheduled. Here are the details:</p><div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;"><p><strong>Booking ID:</strong> {{bookingId}}</p><p><strong>Service:</strong> {{service}}</p><p><strong>Specialist:</strong> {{staff}}</p><p><strong>Date:</strong> {{date}}</p><p><strong>Time:</strong> {{time}}</p></div><p>Thank you for choosing Snippo Booking!</p>' },
+    { id: 'staff_booking_notification', subject: 'New Booking - {{bookingId}}', body: '<p>Hello {{staff}},</p><p>You have a new appointment scheduled:</p><ul><li><strong>Customer:</strong> {{name}}</li><li><strong>Service:</strong> {{service}}</li><li><strong>Date:</strong> {{date}}</li><li><strong>Time:</strong> {{time}}</li></ul>' },
+    { id: 'admin_booking_alert', subject: 'Admin Alert: New Booking {{bookingId}}', body: '<h2>New Booking Logged</h2><p><strong>Customer:</strong> {{name}} ({{email}})</p><p><strong>Staff:</strong> {{staff}}</p><p><strong>Service:</strong> {{service}}</p><p><strong>DateTime:</strong> {{date}} @ {{time}}</p>' },
+    { id: 'staff_application_received', subject: 'Staff Application Received - Snippo', body: '<p>Hello {{name}},</p><p>Thank you for applying to join the Snippo team. Your application for <strong>{{role}}</strong> is currently under review by our administration.</p><p>We will notify you via email as soon as your account is approved.</p>' },
+    { id: 'admin_staff_application_alert', subject: 'New Staff Application - Snippo', body: '<h2>New Staff Application Alert</h2><p>A new staff candidate has applied:</p><ul><li><strong>Name:</strong> {{name}}</li><li><strong>Role:</strong> {{role}}</li><li><strong>Email:</strong> {{email}}</li><li><strong>Phone:</strong> {{phone}}</li></ul><p>Please log in to the admin dashboard to review and approve their profile.</p>' },
+    { id: 'staff_account_approved', subject: 'Active: Your Staff Account Approved!', body: '<p>Hello {{name}},</p><p>Congratulations! Your staff account has been approved and activated.</p><p>You can now log in to manage your schedule and start receiving bookings.</p><p>Welcome to the team!</p>' },
+    { id: 'booking_extension_user', subject: 'Session Extended - {{bookingId}}', body: '<p>Hello {{name}},</p><p>Your booking <strong>{{bookingId}}</strong> has been successfully extended by {{extraHours}} hour(s).</p><p>New total duration: <strong>{{dur}} minutes</strong>.</p>' },
+    { id: 'booking_extension_staff', subject: 'Session Extended: {{bookingId}}', body: '<p>Hello {{staff}},</p><p>An extra {{extraHours}} hour(s) have been added to your session with {{name}}.</p><p>New total duration: <strong>{{dur}} minutes</strong>.</p>' },
+    { id: 'booking_extension_admin', subject: 'Admin Alert: Booking Extended {{bookingId}}', body: '<p>Booking <strong>{{bookingId}}</strong> was extended by {{extraHours}} hour(s).</p><ul><li><strong>Customer:</strong> {{name}}</li><li><strong>Staff:</strong> {{staff}}</li><li><strong>New Total:</strong> {{dur}} min</li></ul>' }
+  ];
+
+  for (const t of templates) {
+    await pool.query(`INSERT INTO email_templates (id, subject, body) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING`, [t.id, t.subject, t.body]);
   }
 }
 
@@ -249,4 +280,23 @@ export async function getStripeConfig() {
 export async function saveStripeConfig(config) {
   // Configured via environment variables in live mode
   return true;
+}
+export async function getEmailTemplates() {
+  const res = await pool.query(`SELECT * FROM email_templates ORDER BY id`);
+  return res.rows.map(rowToEmailTemplate);
+}
+
+export async function updateEmailTemplate(id, { subject, body }) {
+  await pool.query(
+    `INSERT INTO email_templates (id, subject, body) VALUES ($1, $2, $3)
+     ON CONFLICT (id) DO UPDATE SET subject = $2, body = $3`,
+    [id, subject, body]
+  );
+  return true;
+}
+
+export async function getEmailTemplate(id) {
+  const res = await pool.query(`SELECT * FROM email_templates WHERE id = $1`, [id]);
+  if (res.rows.length === 0) return null;
+  return rowToEmailTemplate(res.rows[0]);
 }

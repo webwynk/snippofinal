@@ -325,6 +325,70 @@ function ApprovalDetailsModal({ staff, onApprove, onReject, onClose }) {
   );
 }
 
+function TemplateEditor({ templates, onSave }) {
+  const [editing, setEditing] = useState(null);
+  const [f, setF] = useState({ subject: "", body: "" });
+
+  const startEdit = (t) => {
+    setEditing(t.id);
+    setF({ subject: t.subject, body: t.body });
+  };
+
+  const save = () => {
+    onSave(editing, f);
+    setEditing(null);
+  };
+
+  const tLabels = {
+    welcome_user: "Welcome (New User)",
+    user_booking_confirmation: "Booking Confirmation (User)",
+    staff_booking_notification: "New Booking (Staff)",
+    admin_booking_alert: "New Booking (Admin)",
+    staff_application_received: "Application Received (Staff)",
+    admin_staff_application_alert: "New Application (Admin)",
+    staff_account_approved: "Account Approved (Staff)"
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+      {templates.map(t => (
+        <div key={t.id} className="glass" style={{ padding: 18 }}>
+          {editing === t.id ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: "var(--red)" }}>Editing: {tLabels[t.id] || t.id}</div>
+              <div>
+                <label className="lbl">SUBJECT LINE</label>
+                <input className="inp" value={f.subject} onChange={e => setF({ ...f, subject: e.target.value })} />
+                <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>Placeholders: {'{{name}}'}, {'{{bookingId}}'}, {'{{service}}'}</div>
+              </div>
+              <div>
+                <label className="lbl">EMAIL BODY (HTML)</label>
+                <textarea className="inp" style={{ minHeight: 200, fontFamily: "monospace", fontSize: 13 }} value={f.body} onChange={e => setF({ ...f, body: e.target.value })} />
+                <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>Placeholders: {'{{name}}'}, {'{{bookingId}}'}, {'{{service}}'}, {'{{staff}}'}, {'{{date}}'}, {'{{time}}'}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-p btn-sm" onClick={save}>Save Changes</button>
+                <button className="btn btn-g btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{tLabels[t.id] || t.id}</div>
+                <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 600 }}>Subject: <span style={{ fontWeight: 400, color: "var(--muted)" }}>{t.subject}</span></div>
+                <div style={{ fontSize: 12, color: "var(--muted2)", marginTop: 6, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {t.body.replace(/<[^>]*>?/gm, '')}
+                </div>
+              </div>
+              <button className="btn btn-g btn-sm" onClick={() => startEdit(t)}>Edit Template</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function UserDetailsModal({ user, onClose }) {
   return (
     <div className="mov" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -418,6 +482,7 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
   const [pages, setPages] = useState({ bookings: 1, staff: 1, users: 1 });
   const [curPages, setCurPages] = useState({ bookings: 1, staff: 1, users: 1 });
   const [users, setUsers] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const { toasts, toast } = useToast();
   const bmap = { upcoming: "bu", completed: "bc", cancelled: "bx", active: "ba" };
   const filtered = bookings.filter(b => bFilter === "all" || b.s === bFilter);
@@ -449,13 +514,15 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
       if (sec === "staff") setStaff(data.data);
       if (sec === "users") setUsers(data.data);
       setPages(p => ({ ...p, [sec]: data.pages }));
+    } else if (data.templates) {
+      setTemplates(data.templates);
     } else {
       setBookings(data.bookings || []);
     }
   };
 
   useEffect(() => {
-    if (["bookings", "staff", "users", "payments"].includes(sec)) {
+    if (["bookings", "staff", "users", "payments", "emails"].includes(sec)) {
       reloadAdminData(sec, curPages[sec]);
     }
   }, [sec, curPages]);
@@ -570,6 +637,16 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
     }
   };
 
+  const saveTemplate = async (id, { subject, body }) => {
+    try {
+      await apiRequest(`/admin/templates/${id}`, { method: "POST", token, body: { subject, body } });
+      setTemplates(p => p.map(t => (t.id === id ? { ...t, subject, body } : t)));
+      toast("Template saved!", "success");
+    } catch (e) {
+      toast(e.message || "Failed to save template", "error");
+    }
+  };
+
   const nav = [
     {
       id: "overview",
@@ -643,6 +720,16 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
       ),
       l: "Approvals",
       badge: pendingStaff.length,
+    },
+    {
+      id: "emails",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+      ),
+      l: "Email Template",
     },
     {
       id: "embed",
@@ -1187,6 +1274,14 @@ export default function AdminDash({ services, setServices, staff, setStaff, book
                 </tbody>
               </table>
             </div>
+          </>
+        )}
+
+        {sec === "emails" && (
+          <>
+            <h1 className="sh">Email Templates</h1>
+            <p className="ss">Customize the content of automated notifications.</p>
+            <TemplateEditor templates={templates} onSave={saveTemplate} />
           </>
         )}
       </div>

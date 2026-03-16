@@ -1,4 +1,4 @@
-import { readData, updateData, nextCounter, getPagedBookings, getPagedStaff, getPagedUsers, getStripeConfig, saveStripeConfig } from "../store.js";
+import { readData, updateData, nextCounter, getPagedBookings, getPagedStaff, getPagedUsers, getStripeConfig, saveStripeConfig, getEmailTemplates, updateEmailTemplate } from "../store.js";
 import { normalizeEmail, initials, pickColor } from "../utils.js";
 import { asyncHandler, httpError } from "../utils/errorHelpers.js";
 import { userByEmail } from "../utils/userHelpers.js";
@@ -18,6 +18,9 @@ export const getAdminData = asyncHandler(async (req, res) => {
     pagedData = await getPagedStaff({ page, limit });
   } else if (tab === "users") {
     pagedData = await getPagedUsers({ page, limit });
+  } else if (tab === "emails") {
+    const templates = await getEmailTemplates();
+    pagedData = { templates };
   }
 
   res.json({
@@ -347,16 +350,8 @@ export const approvePendingStaff = asyncHandler(async (req, res) => {
   res.json({ staffMember: approvedMember, pendingStaff });
 
   // Notify Staff
-  sendEmail({
-    to: approvedMember.email,
-    subject: "Active: Your Staff Account Approved!",
-    html: `
-      <h1>Account Activated!</h1>
-      <p>Hello ${approvedMember.name},</p>
-      <p>Congratulations! Your staff account has been approved and activated.</p>
-      <p>You can now log in to manage your schedule and start receiving bookings.</p>
-      <p>Welcome to the team!</p>
-    `
+  sendTemplatedEmail("staff_account_approved", approvedMember.email, {
+    name: approvedMember.name,
   }).catch(err => console.error("Staff approval email failed", err));
 });
 
@@ -454,4 +449,17 @@ export const testEmail = asyncHandler(async (req, res) => {
       }
     });
   }
+});
+
+export const getTemplates = asyncHandler(async (req, res) => {
+  const templates = await getEmailTemplates();
+  res.json(templates);
+});
+
+export const saveTemplate = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const { subject, body } = req.body || {};
+  if (!subject || !body) throw httpError(400, "Subject and body are required");
+  await updateEmailTemplate(id, { subject, body });
+  res.json({ success: true });
 });

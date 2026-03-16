@@ -13,7 +13,9 @@ import {
   rejectPendingStaff,
   getStripeSettings,
   saveStripeSettings,
-  testEmail
+  testEmail,
+  getTemplates,
+  saveTemplate
 } from "../controllers/adminController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 
@@ -33,8 +35,12 @@ router.patch("/bookings/:id/status", updateBookingStatus);
 router.post("/pending/:id/approve", approvePendingStaff);
 router.post("/pending/:id/reject", rejectPendingStaff);
 
-router.get("/stripe-config", getStripeSettings);
-router.put("/stripe-config", saveStripeSettings);
+router.get("/stripe", getStripeSettings);
+router.post("/stripe", saveStripeSettings);
+
+router.get("/templates", getTemplates);
+router.post("/templates/:id", saveTemplate);
+
 router.post("/test-email", testEmail);
 
 export default router;
