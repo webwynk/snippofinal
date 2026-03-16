@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { STEPS, MNS, DS, TIMES, cal, fmtDur } from "../../utils/helpers";
 import Progress from "../Shared/Progress";
 import StaffDetailsModal from "../Shared/StaffDetailsModal";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { apiRequest } from "../../utils/api";
 
 function S1({ sel, onSel, services }) {
+// ... (S1 component stays the same)
   return (
     <div className="se">
 
@@ -333,121 +337,142 @@ function S5({ svc, stf, date, time }) {
   );
 }
 
-function S6({ svc, onSuccess }) {
+function StripeCheckoutForm({ svc, onSuccess, token }) {
+  const stripe = useStripe();
+  const elements = useElements();
   const [loading, setLoading] = useState(false);
-  const [card, setCard] = useState({ num: "", exp: "", cvc: "" });
   const [err, setErr] = useState("");
-  const pay = async () => {
-    if (card.num.replace(/\s/g, "").length < 16) {
-      setErr("Enter a valid 16-digit card number");
-      return;
-    }
-    if (!card.exp.match(/^\d{2}\/\d{2}$/)) {
-      setErr("Format: MM/YY");
-      return;
-    }
-    if (card.cvc.length < 3) {
-      setErr("Enter a valid CVC");
-      return;
-    }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
     setErr("");
     setLoading(true);
+
     try {
-      await new Promise(r => setTimeout(r, 800));
-      await onSuccess();
+      // 1. Create PaymentIntent on the server
+      const { clientSecret } = await apiRequest("/payments/create-intent", {
+        method: "POST",
+        token,
+        body: { amount: svc.price, currency: "usd" }
+      });
+
+      // 2. Confirm payment on the client
+      const cardElement = elements.getElement(CardElement);
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+        },
+      });
+
+      if (error) {
+        setErr(error.message);
+      } else if (paymentIntent.status === "succeeded") {
+        onSuccess();
+      }
     } catch (e) {
       setErr(e.message || "Payment failed");
     } finally {
       setLoading(false);
     }
   };
+
+  return (
+    <form onSubmit={handleSubmit} className="glass" style={{ padding: "clamp(14px,4vw,24px)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>Amount due</span>
+        <span style={{ fontSize: "clamp(22px,5vw,28px)", fontWeight: 900, color: "var(--red)", letterSpacing: "-.03em" }}>
+          ${svc?.price}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        <div>
+          <label className="lbl">CARD DETAILS</label>
+          <div style={{ 
+            padding: "12px", 
+            background: "rgba(255,255,255,0.05)", 
+            borderRadius: "8px", 
+            border: "1px solid var(--border)" 
+          }}>
+            <CardElement options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#fff',
+                  '::placeholder': {
+                    color: '#aaa',
+                  },
+                },
+                invalid: {
+                  color: '#e63946',
+                },
+              },
+            }} />
+          </div>
+        </div>
+      </div>
+      {err && (
+        <div
+          style={{
+            color: "var(--red)",
+            fontSize: 12,
+            marginTop: 9,
+            padding: "9px 11px",
+            background: "rgba(230,57,70,.08)",
+            borderRadius: 8,
+          }}
+        >
+          ⚠ {err}
+        </div>
+      )}
+      <button
+        className="btn btn-p"
+        type="submit"
+        style={{ width: "100%", marginTop: 16, padding: 14, fontSize: 14 }}
+        disabled={loading || !stripe}
+      >
+        {loading ? (
+          <span className="ld">
+            <span>●</span>
+            <span>●</span>
+            <span>●</span>
+          </span>
+        ) : (
+          `🔒 Pay $${svc?.price} Securely`
+        )}
+      </button>
+    </form>
+  );
+}
+
+function S6({ svc, onSuccess, stripeKey, token }) {
+  const [stripePromise, setStripePromise] = useState(null);
+
+  useEffect(() => {
+    if (stripeKey) {
+      setStripePromise(loadStripe(stripeKey));
+    }
+  }, [stripeKey]);
+
+  if (!stripeKey) {
+    return (
+      <div className="se" style={{ textAlign: "center", padding: 40 }}>
+        <div className="glass" style={{ padding: 20 }}>
+          <div style={{ color: "var(--red)", fontWeight: 700 }}>Stripe is not configured</div>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>Please contact administrator to set up payments.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="se" style={{ maxWidth: 460, margin: "0 auto" }}>
-
-      <div className="glass" style={{ padding: "clamp(14px,4vw,24px)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Amount due</span>
-          <span style={{ fontSize: "clamp(22px,5vw,28px)", fontWeight: 900, color: "var(--red)", letterSpacing: "-.03em" }}>
-            ${svc?.price}
-          </span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-          <div>
-            <label className="lbl">CARD NUMBER</label>
-            <input
-              className="sinp"
-              placeholder="4242 4242 4242 4242"
-              maxLength={19}
-              value={card.num}
-              onChange={e =>
-                setCard({
-                  ...card,
-                  num: e.target.value
-                    .replace(/\D/g, "")
-                    .replace(/(.{4})/g, "$1 ")
-                    .trim(),
-                })
-              }
-            />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
-            <div>
-              <label className="lbl">EXPIRY</label>
-              <input
-                className="sinp"
-                placeholder="MM/YY"
-                maxLength={5}
-                value={card.exp}
-                onChange={e => {
-                  let v = e.target.value.replace(/\D/g, "");
-                  if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2, 4);
-                  setCard({ ...card, exp: v });
-                }}
-              />
-            </div>
-            <div>
-              <label className="lbl">CVC</label>
-              <input
-                className="sinp"
-                placeholder="•••"
-                maxLength={4}
-                value={card.cvc}
-                onChange={e => setCard({ ...card, cvc: e.target.value.replace(/\D/g, "") })}
-              />
-            </div>
-          </div>
-        </div>
-        {err && (
-          <div
-            style={{
-              color: "var(--red)",
-              fontSize: 12,
-              marginTop: 9,
-              padding: "9px 11px",
-              background: "rgba(230,57,70,.08)",
-              borderRadius: 8,
-            }}
-          >
-            ⚠ {err}
-          </div>
-        )}
-        <button
-          className="btn btn-p"
-          style={{ width: "100%", marginTop: 16, padding: 14, fontSize: 14 }}
-          onClick={pay}
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="ld">
-              <span>●</span>
-              <span>●</span>
-              <span>●</span>
-            </span>
-          ) : (
-            `🔒 Pay $${svc?.price} Securely`
-          )}
-        </button>
-      </div>
+      {stripePromise && (
+        <Elements stripe={stripePromise}>
+          <StripeCheckoutForm svc={svc} onSuccess={onSuccess} token={token} />
+        </Elements>
+      )}
     </div>
   );
 }
@@ -489,7 +514,7 @@ function S7({ svc, stf, date, time, booking, onDash, onRebook }) {
   );
 }
 
-export default function BookingForm({ user, onNeedAuth, services, staff, bookings, busySlots, onCreateBooking, onGoDash }) {
+export default function BookingForm({ user, onNeedAuth, services, staff, bookings, busySlots, onCreateBooking, onGoDash, stripeKey, token }) {
   const [step, setStep] = useState(0);
   const [svc, setSvc] = useState(null);
   const [stf, setStf] = useState(null);
@@ -563,7 +588,7 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
         {step === 2 && <S3 selDate={date} selTime={time} onDate={setDate} onTime={setTime} busySlots={busySlots || bookings} stf={stf} />}
         {step === 3 && <S4 det={det} onChange={setDet} user={user} />}
         {step === 4 && <S5 svc={svc} stf={stf} date={date} time={time} />}
-        {step === 5 && <S6 svc={svc} onSuccess={createBooking} />}
+        {step === 5 && <S6 svc={svc} onSuccess={createBooking} stripeKey={stripeKey} token={token} />}
         {step === 6 && (
           <S7 svc={svc} stf={stf} date={date} time={time} booking={createdBooking} onDash={onGoDash} onRebook={reset} />
         )}

@@ -48,6 +48,7 @@ export default function App(){
   const [staffTab,setStaffTab]           = useState("schedule");
   const [userDashTab,setUserDashTab]     = useState("bookings");
   const [token,setToken]                 = useState(null);
+  const [stripeKey,setStripeKey]         = useState(null);
   const [booting,setBooting]             = useState(true);
   const [showAuthModal,setShowAuthModal] = useState(false);
   const [embedMode]                      = useState(()=>typeof window!=="undefined"&&new URLSearchParams(window.location.search).get("embed")==="1");
@@ -77,6 +78,7 @@ export default function App(){
   const loadBootstrap=async sessionToken=>{
     const data=await apiRequest("/bootstrap",sessionToken?{token:sessionToken}:{});
     applyPublicData(data);
+    if(data.stripePublishableKey)setStripeKey(data.stripePublishableKey);
     return data;
   };
 
@@ -293,6 +295,8 @@ export default function App(){
             busySlots={globalBusySlots} // For disabling slots
             onCreateBooking={createBooking}
             embedMode={embedMode}
+            stripeKey={stripeKey}
+            token={token}
             embedHeader={embedMode?<PublicHeader
               user={user}
               onLoginClick={openAuth}

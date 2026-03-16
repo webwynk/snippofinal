@@ -45,5 +45,6 @@ export const getBootstrap = asyncHandler(async (req, res) => {
     bookings,
     busySlots,
     pendingStaff,
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
   });
 });

@@ -13,6 +13,7 @@ import userRoutes from "./routes/userRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 const isProduction = process.env.NODE_ENV === "production";
@@ -59,6 +60,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ── Serve Vite-built frontend (production only) ───────────────────────────────
