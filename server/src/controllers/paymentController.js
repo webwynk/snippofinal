@@ -6,6 +6,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export const createPaymentIntent = asyncHandler(async (req, res) => {
   const { amount, currency = "usd", metadata = {} } = req.body;
 
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error("STRIPE_SECRET_KEY is missing in environment variables");
+    throw httpError(500, "Payment system configuration error (Secret key missing)");
+  }
+
   if (!amount || amount <= 0) {
     throw httpError(400, "Invalid amount");
   }
@@ -24,7 +29,8 @@ export const createPaymentIntent = asyncHandler(async (req, res) => {
       clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
-    console.error("Stripe error:", error);
-    throw httpError(500, error.message || "Failed to create payment intent");
+    console.error("Stripe error detail:", error);
+    // Return Stripe error message with 400 so it's not masked as "Internal server error"
+    throw httpError(400, error.message || "Stripe payment initialization failed");
   }
 });
