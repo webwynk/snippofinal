@@ -353,15 +353,20 @@ function StripeCheckoutForm({ svc, onSuccess }) {
     try {
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
+        confirmParams: {
+          return_url: window.location.href,
+        },
         redirect: "if_required",
       });
 
       if (error) {
-        setErr(error.message);
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setErr(error.message);
+        } else {
+          setErr("An unexpected error occurred.");
+        }
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
         onSuccess();
-      } else {
-        setErr("Payment status: " + paymentIntent?.status);
       }
     } catch (e) {
       setErr(e.message || "Payment failed");
@@ -550,6 +555,84 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
   const [det, setDet] = useState({});
   const [createdBooking, setCreatedBooking] = useState(null);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(false);
+
+  // Persistence for redirect recovery
+  useEffect(() => {
+    if (svc || stf || date || time || Object.keys(det).length > 0) {
+      localStorage.setItem("pending_booking", JSON.stringify({
+        svcId: svc?.id,
+        stfId: stf?.id,
+        date: date?.toISOString(),
+        time,
+        det,
+        step 
+      }));
+    }
+  }, [svc, stf, date, time, det, step]);
+
+  // Handle Stripe Redirect Return
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const clientSecret = query.get("payment_intent_client_secret");
+
+    if (clientSecret && stripeKey && services.length > 0 && staff.length > 0) {
+      const finishRedirect = async () => {
+        setIsProcessingRedirect(true);
+        const stripe = await loadStripe(stripeKey);
+        const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
+
+        if (paymentIntent && paymentIntent.status === "succeeded") {
+          // Recover data from localStorage
+          const saved = localStorage.getItem("pending_booking");
+          if (saved) {
+            try {
+              const { svcId, stfId, date: savedDate, time: savedTime, det: savedDet } = JSON.parse(saved);
+              const foundSvc = services.find(s => s.id === svcId);
+              const foundStf = staff.find(s => s.id === stfId);
+              
+              if (foundSvc && foundStf) {
+                setSvc(foundSvc);
+                setStf(foundStf);
+                setDate(new Date(savedDate));
+                setTime(savedTime);
+                setDet(savedDet);
+
+                // Create the booking in our DB
+                const y = new Date(savedDate).getFullYear();
+                const m = String(new Date(savedDate).getMonth() + 1).padStart(2, '0');
+                const d = String(new Date(savedDate).getDate()).padStart(2, '0');
+                const localDateString = `${y}-${m}-${d}`;
+
+                const payload = { serviceId: svcId, staffId: stfId, date: localDateString, time: savedTime, details: savedDet };
+                const booking = await onCreateBooking?.(payload);
+                setCreatedBooking(booking || null);
+                setStep(6);
+                
+                localStorage.removeItem("pending_booking");
+                // Clean URL
+                window.history.replaceState({}, "", window.location.pathname);
+              }
+            } catch (err) {
+              console.error("Redirect recovery failed:", err);
+            }
+          }
+        }
+        setIsProcessingRedirect(false);
+      };
+
+      finishRedirect();
+    }
+  }, [stripeKey, services, staff]);
+
+  if (isProcessingRedirect) {
+    return (
+      <div style={{ textAlign: "center", padding: 60 }}>
+        <div className="ld"><span>●</span><span>●</span><span>●</span></div>
+        <p style={{ marginTop: 20, color: "var(--muted)" }}>Completing your booking...</p>
+      </div>
+    );
+  }
 
   const canNext = () => {
     if (step === 0) return !!svc;
