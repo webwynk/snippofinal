@@ -23,6 +23,15 @@ const transporter = nodemailer.createTransport({
   debug: true
 });
 
+// Verify connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('[SMTP Verify Error]', error);
+  } else {
+    console.log('[SMTP Verify Success] Server is ready to take our messages');
+  }
+});
+
 /**
  * Send an email
  * @param {Object} options 
@@ -32,20 +41,25 @@ const transporter = nodemailer.createTransport({
  * @param {string} options.html - HTML content
  */
 export const sendEmail = async ({ to, subject, text, html }) => {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    console.error('[Email Error] SMTP credentials not configured in environment');
+    return null;
+  }
+
   try {
+    console.log(`[Email] Attempting to send to: ${to} | Subject: ${subject}`);
     const info = await transporter.sendMail({
-      from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
+      from: `"${process.env.SMTP_FROM_NAME || 'Snippo Booking'}" <${process.env.SMTP_FROM_EMAIL}>`,
       to,
       subject,
-      text,
+      text: text || "This email requires HTML viewing",
       html,
     });
-    console.log(`[Email Sent] Message ID: ${info.messageId}`);
+    console.log(`[Email Sent] Success! Message ID: ${info.messageId}`);
     return info;
   } catch (error) {
-    console.error('[Email Error]', error);
-    // We don't throw error here to avoid breaking the booking flow
-    // but we log it for debugging
+    console.error('[Email Error] Failed to send email:', error.message);
+    if (error.response) console.error('[SMTP Response]', error.response);
     return null;
   }
 };
