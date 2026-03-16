@@ -12,7 +12,8 @@ import {
   approvePendingStaff,
   rejectPendingStaff,
   getStripeSettings,
-  saveStripeSettings
+  saveStripeSettings,
+  testEmail
 } from "../controllers/adminController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 
@@ -34,5 +35,6 @@ router.post("/pending/:id/reject", rejectPendingStaff);
 
 router.get("/stripe-config", getStripeSettings);
 router.put("/stripe-config", saveStripeSettings);
+router.post("/test-email", testEmail);
 
 export default router;

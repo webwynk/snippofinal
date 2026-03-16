@@ -416,3 +416,42 @@ export const saveStripeSettings = asyncHandler(async (req, res) => {
   await saveStripeConfig(configToSave);
   res.json({ success: true, connected: !!(configToSave.publishableKey && configToSave.secretKey) });
 });
+
+export const testEmail = asyncHandler(async (req, res) => {
+  const targetEmail = req.body?.email || process.env.SMTP_FROM_EMAIL;
+  
+  console.log(`[Diagnostic] Triggering test email to: ${targetEmail}`);
+  
+  const result = await sendEmail({
+    to: targetEmail,
+    subject: "Snippo Diagnostic: Test Email",
+    text: "This is a test email to verify your SMTP configuration.",
+    html: `
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+        <h2 style="color: #e63946;">Snippo Email Diagnostic</h2>
+        <p>If you are reading this, your SMTP configuration is working correctly!</p>
+        <hr/>
+        <p style="font-size: 12px; color: #666;">
+          Sent at: ${new Date().toISOString()}<br/>
+          From: ${process.env.SMTP_FROM_EMAIL}<br/>
+          Host: ${process.env.SMTP_HOST}
+        </p>
+      </div>
+    `
+  });
+
+  if (result) {
+    res.json({ success: true, message: "Email sent successfully. Check your inbox.", messageId: result.messageId });
+  } else {
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to send email. Check Render server logs for full SMTP debug output.",
+      config: {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        user: process.env.SMTP_USER,
+        from: process.env.SMTP_FROM_EMAIL
+      }
+    });
+  }
+});
