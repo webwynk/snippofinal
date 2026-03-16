@@ -3,7 +3,7 @@ import { STEPS, MNS, DS, TIMES, cal, fmtDur } from "../../utils/helpers";
 import Progress from "../Shared/Progress";
 import StaffDetailsModal from "../Shared/StaffDetailsModal";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements, useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { apiRequest } from "../../utils/api";
 
 function S1({ sel, onSel, services }) {
@@ -337,7 +337,7 @@ function S5({ svc, stf, date, time }) {
   );
 }
 
-function StripeCheckoutForm({ svc, onSuccess, token }) {
+function StripeCheckoutForm({ svc, onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -351,25 +351,17 @@ function StripeCheckoutForm({ svc, onSuccess, token }) {
     setLoading(true);
 
     try {
-      // 1. Create PaymentIntent on the server
-      const { clientSecret } = await apiRequest("/payments/create-intent", {
-        method: "POST",
-        token,
-        body: { amount: svc.price, currency: "usd" }
-      });
-
-      // 2. Confirm payment on the client
-      const cardElement = elements.getElement(CardElement);
-      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-        },
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
       });
 
       if (error) {
         setErr(error.message);
-      } else if (paymentIntent.status === "succeeded") {
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
         onSuccess();
+      } else {
+        setErr("Payment status: " + paymentIntent?.status);
       }
     } catch (e) {
       setErr(e.message || "Payment failed");
@@ -386,32 +378,13 @@ function StripeCheckoutForm({ svc, onSuccess, token }) {
           ${svc?.price}
         </span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <div>
-          <label className="lbl">CARD DETAILS</label>
-          <div style={{ 
-            padding: "12px", 
-            background: "rgba(255,255,255,0.05)", 
-            borderRadius: "8px", 
-            border: "1px solid var(--border)" 
-          }}>
-            <CardElement options={{
-              style: {
-                base: {
-                  fontSize: '16px',
-                  color: '#fff',
-                  '::placeholder': {
-                    color: '#aaa',
-                  },
-                },
-                invalid: {
-                  color: '#e63946',
-                },
-              },
-            }} />
-          </div>
-        </div>
+      
+      <div style={{ marginBottom: 11 }}>
+        <PaymentElement options={{
+          layout: "tabs",
+        }} />
       </div>
+
       {err && (
         <div
           style={{
@@ -426,6 +399,7 @@ function StripeCheckoutForm({ svc, onSuccess, token }) {
           ⚠ {err}
         </div>
       )}
+      
       <button
         className="btn btn-p"
         type="submit"
@@ -448,12 +422,31 @@ function StripeCheckoutForm({ svc, onSuccess, token }) {
 
 function S6({ svc, onSuccess, stripeKey, token }) {
   const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState("");
+  const [fetchErr, setFetchErr] = useState("");
 
   useEffect(() => {
     if (stripeKey) {
       setStripePromise(loadStripe(stripeKey));
     }
   }, [stripeKey]);
+
+  useEffect(() => {
+    const initPayment = async () => {
+      try {
+        const { clientSecret } = await apiRequest("/payments/create-intent", {
+          method: "POST",
+          token,
+          body: { amount: svc.price, currency: "usd" }
+        });
+        setClientSecret(clientSecret);
+      } catch (err) {
+        console.error("Payment init error:", err);
+        setFetchErr(err.message || "Failed to initialize payment");
+      }
+    };
+    if (token && svc?.price) initPayment();
+  }, [token, svc?.price]);
 
   if (!stripeKey) {
     return (
@@ -466,13 +459,47 @@ function S6({ svc, onSuccess, stripeKey, token }) {
     );
   }
 
+  if (fetchErr) {
+    return (
+      <div className="se" style={{ maxWidth: 460, margin: "0 auto" }}>
+        <div className="glass" style={{ padding: 20, textAlign: "center", borderColor: "var(--red)" }}>
+          <div style={{ color: "var(--red)", fontWeight: 700, marginBottom: 8 }}>Payment Initialization Failed</div>
+          <p style={{ fontSize: 12, color: "var(--muted)" }}>{fetchErr}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!clientSecret || !stripePromise) {
+    return (
+      <div className="se" style={{ textAlign: "center", padding: 40 }}>
+        <div className="ld">
+          <span>●</span>
+          <span>●</span>
+          <span>●</span>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 12 }}>Initializing secure checkout...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="se" style={{ maxWidth: 460, margin: "0 auto" }}>
-      {stripePromise && (
-        <Elements stripe={stripePromise}>
-          <StripeCheckoutForm svc={svc} onSuccess={onSuccess} token={token} />
-        </Elements>
-      )}
+      <Elements stripe={stripePromise} options={{ 
+        clientSecret,
+        appearance: {
+          theme: 'night',
+          variables: {
+            colorPrimary: '#e63946',
+            colorBackground: 'rgba(255,255,255,0.05)',
+            colorText: '#ffffff',
+            colorDanger: '#e63946',
+            borderRadius: '8px',
+          },
+        }
+      }}>
+        <StripeCheckoutForm svc={svc} onSuccess={onSuccess} />
+      </Elements>
     </div>
   );
 }
