@@ -8,17 +8,19 @@ const smtpPort = parseInt(process.env.SMTP_PORT || '465');
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: smtpPort,
-  secure: smtpPort === 465, // true for 465, false for 587
+  secure: smtpPort === 465, // SSL on 465, STARTTLS on 587
   auth: {
-    type: 'login', // Explicitly set for some business providers like Yahoo/Turbify
+    type: 'login',
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
   tls: {
-    // Do not fail on invalid certs (common with some business mail providers)
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    minVersion: 'TLSv1.2'
   },
-  // Enable logging for debugging
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
   logger: true,
   debug: true
 });
