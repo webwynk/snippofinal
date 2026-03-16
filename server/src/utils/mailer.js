@@ -10,6 +10,7 @@ const transporter = nodemailer.createTransport({
   port: smtpPort,
   secure: smtpPort === 465, // true for 465, false for 587
   auth: {
+    type: 'login', // Explicitly set for some business providers like Yahoo/Turbify
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
