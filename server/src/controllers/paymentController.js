@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { asyncHandler, httpError } from "../utils/errorHelpers.js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim());
 
 export const createPaymentIntent = asyncHandler(async (req, res) => {
   const { amount, currency = "usd", metadata = {} } = req.body;
