@@ -378,7 +378,7 @@ export default function App(){
                   bookings={bookings} setBookings={setBookings} pendingStaff={pending} setPendingStaff={setPending}
                   onSignOut={signOutAdmin} token={token} embedUrl={embedUrl}
                   initialSec={adminSec} onSecChange={s=>navigate("admin_dash",s)}/></>
-            : <><nav className="nav"><div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo size={28}/></div></nav>
+            : <><nav className="nav"><div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo /></div></nav>
                <AdminLoginPage onLogin={handleAdminAuth} onBack={()=>navigate("home")}/></>
           }
         </>}
@@ -399,7 +399,7 @@ export default function App(){
                 <StaffPortal staffUser={staffUser} allStaff={staff} setAllStaff={setStaff}
                   bookings={bookings} services={services} onSignOut={signOutStaff} token={token}
                   initialTab={staffTab} onTabChange={t=>navigate("staff_dash",t)}/></>
-            : <><nav className="nav"><div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo size={28}/></div></nav>
+            : <><nav className="nav"><div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo /></div></nav>
                <StaffAuthPage onLogin={handleStaffAuth} onBack={()=>navigate("home")}/></>
           }
         </>}

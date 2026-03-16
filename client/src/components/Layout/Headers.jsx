@@ -177,7 +177,7 @@ export function AdminHeader({ admin, onSignOut }) {
   return (
     <nav className="dnav dnav-admin">
       <div style={{ marginRight: "auto" }}>
-        <BrandLogo size={26} />
+        <BrandLogo />
       </div>
       <span className="badge bx" style={{ fontSize: 11 }}>
         🛡 Admin Panel
@@ -195,7 +195,7 @@ export function StaffHeader({ staffUser, onSignOut }) {
   return (
     <nav className="dnav dnav-staff">
       <div style={{ marginRight: "auto" }}>
-        <BrandLogo size={26} />
+        <BrandLogo />
       </div>
       <span className="badge bx" style={{ fontSize: 11 }}>
         ✂ Staff Portal
