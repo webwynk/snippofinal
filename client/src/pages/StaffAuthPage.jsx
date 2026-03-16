@@ -69,7 +69,7 @@ export default function StaffAuthPage({ onLogin, onBack }) {
     <div className="auth-page">
       <div className="auth-card" style={{ maxWidth: 440 }}>
         <div className="auth-brand">
-          <div className="auth-logo"><BrandLogo size={34} /></div>
+          <div className="auth-logo"><BrandLogo /></div>
           <div className="auth-badge">💼 Staff Portal</div>
         </div>
         <div className="tabs">

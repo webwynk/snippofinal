@@ -29,7 +29,7 @@ export default function AdminLoginPage({ onLogin, onBack }) {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="auth-logo"><BrandLogo size={34} /></div>
+          <div className="auth-logo"><BrandLogo /></div>
           <div className="auth-badge">🛡 Admin Portal</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>

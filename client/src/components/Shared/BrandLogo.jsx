@@ -1,6 +1,6 @@
 export const LOGO_URL = "/logo.webp";
 
-export default function BrandLogo({ size = 30, className = "", onClick = null }) {
+export default function BrandLogo({ size = 50, className = "", onClick = null }) {
   return (
     <span
       className={className}

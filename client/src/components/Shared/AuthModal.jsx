@@ -87,7 +87,7 @@ export default function AuthModal({ onClose, onAuth, initTab = "register" }) {
           ✕
         </button>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <BrandLogo size={32} />
+          <BrandLogo />
         </div>
         <div style={{ marginBottom: 18, textAlign: "center" }}>
           <div style={{ fontWeight: 900, fontSize: 21, letterSpacing: "-.03em", marginBottom: 3 }}>

@@ -10,7 +10,7 @@ export function PublicHeader({ user, onLoginClick, onSignOut, onGoAdmin, onGoSta
       <div className="dov" onClick={close} />
       <div className={`drw ${embedMode ? "drw-left" : ""}`}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <BrandLogo size={24} />
+          <BrandLogo />
           <button className="btn btn-g btn-sm" onClick={close}>
             X
           </button>
@@ -111,7 +111,7 @@ export function PublicHeader({ user, onLoginClick, onSignOut, onGoAdmin, onGoSta
     <>
       <nav className="nav">
         <div className="nav-logo">
-          <BrandLogo size={28} />
+          <BrandLogo />
         </div>
         <div className="nav-right">
           {!user && (
