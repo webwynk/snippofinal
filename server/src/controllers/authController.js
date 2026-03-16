@@ -61,13 +61,10 @@ export const registerUser = asyncHandler(async (req, res) => {
   }).catch(err => console.error("Welcome email failed", err));
 
   // Admin notification
-  sendTemplatedEmail("admin_booking_alert", process.env.SMTP_FROM_EMAIL, {
-    bookingId: "NEW USER",
+  sendTemplatedEmail("admin_user_registration", process.env.SMTP_FROM_EMAIL || 'info@snippo.com', {
     name: createdUser.name,
     email: createdUser.email,
-    staff: "SYSTEM",
-    date: new Date().toLocaleDateString(),
-    time: new Date().toLocaleTimeString()
+    date: new Date().toLocaleDateString()
   }).catch(err => console.error("Admin user registration email failed", err));
 });
 

@@ -27,7 +27,7 @@ const emailWrapper = (content) => `
 <body>
   <div class="container">
     <div class="header">
-      <img src="${process.env.APP_URL || ''}/logo.webp" alt="Snippo" height="50">
+      <img src="https://snippo.com/wp-content/uploads/2026/02/tmpd7p765pj-1.webp" alt="Snippo" height="50">
     </div>
     <div class="content">
       ${content}
