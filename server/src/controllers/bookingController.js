@@ -2,6 +2,7 @@ import { readData, updateData, nextCounter, getPagedBookings } from "../store.js
 import { formatDateForUi, normalizeTimeLabel, toDollarAmount } from "../utils.js";
 import { asyncHandler, httpError } from "../utils/errorHelpers.js";
 import { resolveStaffForUser } from "../utils/userHelpers.js";
+import { sendEmail } from "../utils/mailer.js";
 
 export const getBookings = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page || "1");
@@ -104,6 +105,62 @@ export const createBooking = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json(createdBooking);
+
+  // 1. To User
+  sendEmail({
+    to: req.authUser.email,
+    subject: `Booking Confirmation - ${createdBooking.id}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #eee; padding: 20px;">
+        <h2 style="color: #2c3e50;">Booking Confirmed!</h2>
+        <p>Hello <strong>${createdBooking.u}</strong>,</p>
+        <p>Your booking has been successfully scheduled. Here are the details:</p>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Booking ID:</strong> ${createdBooking.id}</p>
+          <p><strong>Service:</strong> ${createdBooking.svc}</p>
+          <p><strong>Specialist:</strong> ${createdBooking.stf}</p>
+          <p><strong>Date:</strong> ${createdBooking.dt}</p>
+          <p><strong>Time:</strong> ${createdBooking.t}</p>
+        </div>
+        <p>Thank you for choosing Snippo Booking!</p>
+      </div>
+    `
+  }).catch(err => console.error('Failed to send user confirmation email', err));
+
+  // 2. To Staff (Find staff email in data)
+  readData().then(data => {
+    const staffMember = data.staff.find(s => s.id === createdBooking.staffId);
+    if (staffMember && staffMember.email) {
+      sendEmail({
+        to: staffMember.email,
+        subject: `New Booking - ${createdBooking.id}`,
+        html: `
+          <h1>New Booking Received</h1>
+          <p>Hello ${staffMember.name},</p>
+          <p>You have a new appointment scheduled:</p>
+          <ul>
+            <li><strong>Customer:</strong> ${createdBooking.u}</li>
+            <li><strong>Service:</strong> ${createdBooking.svc}</li>
+            <li><strong>Date:</strong> ${createdBooking.dt}</li>
+            <li><strong>Time:</strong> ${createdBooking.t}</li>
+          </ul>
+        `
+      }).catch(err => console.error('Failed to notify staff', err));
+    }
+  });
+
+  // 3. To Admin
+  sendEmail({
+    to: process.env.SMTP_FROM_EMAIL,
+    subject: `Admin Alert: New Booking ${createdBooking.id}`,
+    html: `
+      <h2>New Booking Logged</h2>
+      <p><strong>Customer:</strong> ${createdBooking.u} (${req.authUser.email})</p>
+      <p><strong>Staff:</strong> ${createdBooking.stf}</p>
+      <p><strong>Service:</strong> ${createdBooking.svc}</p>
+      <p><strong>DateTime:</strong> ${createdBooking.dt} @ ${createdBooking.t}</p>
+    `
+  }).catch(err => console.error('Failed to notify admin', err));
 });
 
 export const extendBooking = asyncHandler(async (req, res) => {
@@ -146,4 +203,47 @@ export const extendBooking = asyncHandler(async (req, res) => {
   });
 
   res.json(updated);
+
+  // 1. To User
+  sendEmail({
+    to: req.authUser.email,
+    subject: `Booking Extended - ${updated.id}`,
+    html: `
+      <h1>Extension Confirmed</h1>
+      <p>Hello ${updated.u},</p>
+      <p>Your booking <strong>${updated.id}</strong> has been extended by ${extraHours} hour(s).</p>
+      <p>New duration: <strong>${updated.dur} minutes</strong>.</p>
+    `
+  }).catch(err => console.error('Failed to send user extension email', err));
+
+  // 2. To Staff
+  readData().then(data => {
+    const staffMember = data.staff.find(s => s.id === updated.staffId);
+    if (staffMember && staffMember.email) {
+      sendEmail({
+        to: staffMember.email,
+        subject: `Booking Extended: ${updated.id}`,
+        html: `
+          <p>Hello ${staffMember.name},</p>
+          <p>An extra ${extraHours} hour(s) have been added to your session with ${updated.u}.</p>
+          <p>New total duration: ${updated.dur} minutes.</p>
+        `
+      }).catch(err => console.error('Failed to notify staff of extension', err));
+    }
+  });
+
+  // 3. To Admin
+  sendEmail({
+    to: process.env.SMTP_FROM_EMAIL,
+    subject: `Admin Alert: Booking Extended ${updated.id}`,
+    html: `
+      <p>Booking <strong>${updated.id}</strong> was extended.</p>
+      <ul>
+        <li><strong>Customer:</strong> ${updated.u}</li>
+        <li><strong>Staff:</strong> ${updated.stf}</li>
+        <li><strong>Extension:</strong> +${extraHours}h</li>
+        <li><strong>New Total:</strong> ${updated.dur} min</li>
+      </ul>
+    `
+  }).catch(err => console.error('Failed to notify admin of extension', err));
 });

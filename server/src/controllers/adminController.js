@@ -2,6 +2,7 @@ import { readData, updateData, nextCounter, getPagedBookings, getPagedStaff, get
 import { normalizeEmail, initials, pickColor } from "../utils.js";
 import { asyncHandler, httpError } from "../utils/errorHelpers.js";
 import { userByEmail } from "../utils/userHelpers.js";
+import { sendEmail } from "../utils/mailer.js";
 
 export const getAdminData = asyncHandler(async (req, res) => {
   const tab = req.query.tab || "overview";
@@ -344,6 +345,19 @@ export const approvePendingStaff = asyncHandler(async (req, res) => {
   });
 
   res.json({ staffMember: approvedMember, pendingStaff });
+
+  // Notify Staff
+  sendEmail({
+    to: approvedMember.email,
+    subject: "Active: Your Staff Account Approved!",
+    html: `
+      <h1>Account Activated!</h1>
+      <p>Hello ${approvedMember.name},</p>
+      <p>Congratulations! Your staff account has been approved and activated.</p>
+      <p>You can now log in to manage your schedule and start receiving bookings.</p>
+      <p>Welcome to the team!</p>
+    `
+  }).catch(err => console.error("Staff approval email failed", err));
 });
 
 export const rejectPendingStaff = asyncHandler(async (req, res) => {

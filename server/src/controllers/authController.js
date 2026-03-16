@@ -2,7 +2,8 @@ import { updateData, readData, nextCounter, getUserByEmail } from "../store.js";
 import { hashPassword, checkPassword, makeToken, sanitizeUser } from "../auth.js";
 import { normalizeEmail, initials, pickColor } from "../utils.js";
 import { httpError, asyncHandler } from "../utils/errorHelpers.js";
-import { userByEmail, resolveStaffForUser, resolvePendingForUser } from "../utils/userHelpers.js";
+import { resolveStaffForUser, resolvePendingForUser } from "../utils/userHelpers.js";
+import { sendEmail } from "../utils/mailer.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -53,6 +54,33 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   const token = makeToken(createdUser);
   res.status(201).json({ token, user: sanitizeUser(createdUser) });
+
+  // Welcome email to User
+  sendEmail({
+    to: createdUser.email,
+    subject: "Welcome to Snippo Booking!",
+    html: `
+      <h1>Account Created!</h1>
+      <p>Hello ${createdUser.name},</p>
+      <p>Your account has been successfully created. You can now book services and manage your appointments online.</p>
+      <p>See you soon!</p>
+    `
+  }).catch(err => console.error("Welcome email failed", err));
+
+  // Admin notification
+  sendEmail({
+    to: process.env.SMTP_FROM_EMAIL,
+    subject: "New User Registered - Snippo",
+    html: `
+      <h2>New User Alert</h2>
+      <p>A new user has registered:</p>
+      <ul>
+        <li><strong>Name:</strong> ${createdUser.name}</li>
+        <li><strong>Email:</strong> ${createdUser.email}</li>
+        <li><strong>Phone:</strong> ${createdUser.phone || 'N/A'}</li>
+      </ul>
+    `
+  }).catch(err => console.error("Admin user registration email failed", err));
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
@@ -157,6 +185,35 @@ export const registerStaff = asyncHandler(async (req, res) => {
     user: sanitizeUser(createdUser),
     staffData: pendingEntry,
   });
+
+  // To Staff candidate
+  sendEmail({
+    to: createdUser.email,
+    subject: "Staff Application Received - Snippo",
+    html: `
+      <h1>Application Received</h1>
+      <p>Hello ${createdUser.name},</p>
+      <p>Thank you for applying to join the Snippo team. Your application for <strong>${createdUser.roleTitle}</strong> is currently under review by our administration.</p>
+      <p>We will notify you via email as soon as your account is approved.</p>
+    `
+  }).catch(err => console.error("Staff application email failed", err));
+
+  // To Admin
+  sendEmail({
+    to: process.env.SMTP_FROM_EMAIL,
+    subject: "New Staff Application - Snippo",
+    html: `
+      <h2>New Staff Application Alert</h2>
+      <p>A new staff candidate has applied:</p>
+      <ul>
+        <li><strong>Name:</strong> ${createdUser.name}</li>
+        <li><strong>Role:</strong> ${createdUser.roleTitle}</li>
+        <li><strong>Email:</strong> ${createdUser.email}</li>
+        <li><strong>Phone:</strong> ${createdUser.phone || 'N/A'}</li>
+      </ul>
+      <p>Please log in to the admin dashboard to review and approve their profile.</p>
+    `
+  }).catch(err => console.error("Admin staff application email failed", err));
 });
 
 export const loginStaff = asyncHandler(async (req, res) => {
