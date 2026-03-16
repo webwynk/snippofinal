@@ -363,7 +363,7 @@ export default function App(){
 
         {!embedMode&&page==="admin_login" && <>
           <nav className="nav" style={{zIndex:200}}>
-            <div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo size={28}/></div>
+            <div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo /></div>
           </nav>
           <AdminLoginPage
             onLogin={handleAdminAuth}
@@ -385,7 +385,7 @@ export default function App(){
 
         {!embedMode&&page==="staff_auth" && <>
           <nav className="nav" style={{zIndex:200}}>
-            <div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo size={28}/></div>
+            <div className="nav-logo" style={{cursor:"pointer"}} onClick={()=>navigate("home")}><BrandLogo /></div>
           </nav>
           <StaffAuthPage
             onLogin={handleStaffAuth}
