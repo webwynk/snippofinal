@@ -1,41 +1,12 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const smtpPort = parseInt(process.env.SMTP_PORT || '465');
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: smtpPort,
-  secure: smtpPort === 465, // SSL on 465, STARTTLS on 587
-  auth: {
-    type: 'login',
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-    minVersion: 'TLSv1.2'
-  },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-  logger: true,
-  debug: true
-});
-
-// Verify connection on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('[SMTP Verify Error]', error);
-  } else {
-    console.log('[SMTP Verify Success] Server is ready to take our messages');
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * Send an email
+ * Send an email using Resend API
  * @param {Object} options 
  * @param {string} options.to - Recipient email
  * @param {string} options.subject - Email subject
@@ -43,25 +14,35 @@ transporter.verify((error, success) => {
  * @param {string} options.html - HTML content
  */
 export const sendEmail = async ({ to, subject, text, html }) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
-    console.error('[Email Error] SMTP credentials not configured in environment');
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[Email Error] RESEND_API_KEY not configured in environment');
     return null;
   }
 
   try {
-    console.log(`[Email] Attempting to send to: ${to} | Subject: ${subject}`);
-    const info = await transporter.sendMail({
-      from: `"${process.env.SMTP_FROM_NAME || 'Snippo Booking'}" <${process.env.SMTP_FROM_EMAIL}>`,
-      to,
-      subject,
+    console.log(`[Email] Attempting to send via Resend to: ${to} | Subject: ${subject}`);
+    
+    // In Resend, the 'from' must be a verified domain or 'onboarding@resend.dev' for sandbox
+    const fromAddress = process.env.SMTP_FROM_EMAIL || 'onboarding@resend.dev';
+    const fromName = process.env.SMTP_FROM_NAME || 'Snippo Booking';
+
+    const { data, error } = await resend.emails.send({
+      from: `${fromName} <${fromAddress}>`,
+      to: [to],
+      subject: subject,
+      html: html,
       text: text || "This email requires HTML viewing",
-      html,
     });
-    console.log(`[Email Sent] Success! Message ID: ${info.messageId}`);
-    return info;
+
+    if (error) {
+      console.error('[Resend Error]', error);
+      return null;
+    }
+
+    console.log(`[Email Sent] Success! ID: ${data.id}`);
+    return data;
   } catch (error) {
-    console.error('[Email Error] Failed to send email:', error.message);
-    if (error.response) console.error('[SMTP Response]', error.response);
+    console.error('[Email Error] Unexpected failure:', error.message);
     return null;
   }
 };
