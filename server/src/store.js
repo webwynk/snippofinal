@@ -129,7 +129,6 @@ export async function initStore() {
   await pool.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0`);
 
   // Create reviews table
-  await pool.query(`DROP TABLE IF EXISTS reviews CASCADE`); // Ensure clean recreation due to previous type mismatch
   await pool.query(`
     CREATE TABLE IF NOT EXISTS reviews (
       id SERIAL PRIMARY KEY,
