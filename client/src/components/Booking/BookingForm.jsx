@@ -98,7 +98,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                       height: 32
                     }}
                   >
-                    ✓ Selected Minimum 2hour ( {s.hourlyRate > 0 ? `$${calcCommissionPrice(s.hourlyRate) * 2}` : ''} )
+                    ✓ Selected
                   </div>
                 ) : (
                   <button 
