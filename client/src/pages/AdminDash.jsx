@@ -346,7 +346,11 @@ function TemplateEditor({ templates, onSave }) {
     admin_booking_alert: "New Booking (Admin)",
     staff_application_received: "Application Received (Staff)",
     admin_staff_application_alert: "New Application (Admin)",
-    staff_account_approved: "Account Approved (Staff)"
+    staff_account_approved: "Account Approved (Staff)",
+    admin_user_registration: "New User Registration (Admin)",
+    booking_extension_user: "Booking Extension (User)",
+    booking_extension_staff: "Booking Extension (Staff)",
+    booking_extension_admin: "Booking Extension (Admin)"
   };
 
   return (
