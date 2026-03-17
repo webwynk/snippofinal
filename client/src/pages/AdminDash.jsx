@@ -100,6 +100,10 @@ function StaffModal({ member, services, onSave, onClose }) {
               <label className="lbl">DESIGNATION</label>
               <input className="inp" placeholder="e.g. Senior Aesthetician" value={f.role} onChange={e => setF({ ...f, role: e.target.value })} />
             </div>
+            <div>
+              <label className="lbl">HOURLY RATE ($)</label>
+              <input className="inp" type="number" placeholder="100" value={f.hourlyRate || ""} onChange={e => setF({ ...f, hourlyRate: parseFloat(e.target.value || 0) })} />
+            </div>
           </div>
           <div>
             <label className="lbl">EMAIL</label>

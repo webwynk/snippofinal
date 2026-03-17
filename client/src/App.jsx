@@ -213,13 +213,13 @@ export default function App(){
     }
 
     if(payload.user.role==="admin"){
-      setAdmin(payload.user);setUser(null);setStaffUser(null);
-      navigate("admin_dash","overview");
+      setAdmin(payload.user);setUser(null);setStaffUser(null);navigate("admin_dash","overview");
     }else if(payload.user.role==="staff"){
       setStaffUser({...payload.user,staffRef:payload.staffRef,staffData:payload.staffData});setUser(null);setAdmin(null);
       navigate("staff_dash","schedule");
     }else{
-      setUser(payload.user);setAdmin(null);setStaffUser(null);navigate("home");
+      setUser(payload.user);setAdmin(null);setStaffUser(null);
+      if(page!=="book_service")navigate("home");
     }
 
     await refreshData(payload.token);

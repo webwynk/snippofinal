@@ -77,7 +77,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 2 }}>{s.name}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>{s.role}</div>
-                {s.hourlyRate > 0 && <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 6 }}>${s.hourlyRate}/hr</div>}
+                {s.hourlyRate > 0 && <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 6 }}>${s.hourlyRate}/Hour</div>}
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
@@ -98,7 +98,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                       height: 32
                     }}
                   >
-                    ✓ Selected
+                    ✓ Selected Minimum 2hour ( ${s.hourlyRate > 0 ? `$${s.hourlyRate * 2}` : '200'} )
                   </div>
                 ) : (
                   <button 
@@ -581,6 +581,28 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
       }));
     }
   }, [svc, stf, date, time, det, step]);
+
+  // Restore state on mount (if no staff selected yet)
+  useEffect(() => {
+    if (!stf) {
+      const saved = localStorage.getItem("pending_booking");
+      if (saved) {
+        try {
+          const { svcId, stfId, date: savedDate, time: savedTime, det: savedDet, step: savedStep } = JSON.parse(saved);
+          const foundSvc = services.find(s => s.id === svcId);
+          const foundStf = staff.find(s => s.id === stfId);
+          if (foundSvc) setSvc(foundSvc);
+          if (foundStf) setStf(foundStf);
+          if (savedDate) setDate(new Date(savedDate));
+          if (savedTime) setTime(savedTime);
+          if (savedDet) setDet(savedDet);
+          if (savedStep !== undefined) setStep(savedStep);
+        } catch (e) {
+          console.warn("Failed to restore pending booking", e);
+        }
+      }
+    }
+  }, [services, staff]);
 
   // Sync preselected service
   useEffect(() => {
