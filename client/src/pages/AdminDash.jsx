@@ -103,6 +103,9 @@ function StaffModal({ member, services, onSave, onClose }) {
             <div>
               <label className="lbl">HOURLY RATE ($)</label>
               <input className="inp" type="number" placeholder="100" value={f.hourlyRate || ""} onChange={e => setF({ ...f, hourlyRate: parseFloat(e.target.value || 0) })} />
+              <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>
+                +15% admin commission will be added automatically.
+              </div>
             </div>
           </div>
           <div>

@@ -470,7 +470,7 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
                       onChange={e => setProf({ ...prof, hourlyRate: parseFloat(e.target.value) || 0 })}
                     />
                     <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                      Price shown to clients = Hourly Rate × Service Duration. Set 0 to use service base price.
+                      A 15% admin commission will be added automatically. Client price = (Hourly Rate + 15%) × duration.
                     </div>
                   </div>
                   <button

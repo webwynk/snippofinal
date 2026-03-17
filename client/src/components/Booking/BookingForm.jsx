@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { STEPS, MNS, DS, TIMES, cal, fmtDur } from "../../utils/helpers";
+import { STEPS, MNS, DS, TIMES, cal, fmtDur, calcCommissionPrice } from "../../utils/helpers";
 import Progress from "../Shared/Progress";
 import StaffDetailsModal from "../Shared/StaffDetailsModal";
 import { loadStripe } from "@stripe/stripe-js";
@@ -77,7 +77,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 2 }}>{s.name}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>{s.role}</div>
-                {s.hourlyRate > 0 && <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 6 }}>${s.hourlyRate * 2} / 2 Hours</div>}
+                {s.hourlyRate > 0 && <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 6 }}>${calcCommissionPrice(s.hourlyRate) * 2} / 2 Hours</div>}
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
@@ -98,7 +98,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                       height: 32
                     }}
                   >
-                    ✓ Selected Minimum 2hour ( {s.hourlyRate > 0 ? `$${s.hourlyRate * 2}` : ''} )
+                    ✓ Selected Minimum 2hour ( {s.hourlyRate > 0 ? `$${calcCommissionPrice(s.hourlyRate) * 2}` : ''} )
                   </div>
                 ) : (
                   <button 
@@ -552,7 +552,8 @@ function computedPrice(svc, stf) {
   if (!svc) return 0;
   if (stf?.hourlyRate > 0) {
     const durationHours = parseInt(svc.dur || '120') / 60;
-    return Math.round(durationHours * stf.hourlyRate);
+    const commissionedRate = calcCommissionPrice(stf.hourlyRate);
+    return Math.round(durationHours * commissionedRate);
   }
   return svc.price;
 }

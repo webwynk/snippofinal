@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { calcCommissionPrice } from "../../utils/helpers";
 
 /**
  * Public-facing staff card displayed on the user/client side.
@@ -85,6 +86,12 @@ export default function StaffCard({ member, onDetails }) {
         >
           {specialist}
         </div>
+        
+        {member.hourlyRate > 0 && (
+          <div style={{ marginTop: 10, fontSize: 14, fontWeight: 800, color: "var(--red)" }}>
+            ${calcCommissionPrice(member.hourlyRate) * 2} / 2 Hours
+          </div>
+        )}
       </div>
 
       {/* Details button */}

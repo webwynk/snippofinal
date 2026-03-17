@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { calcCommissionPrice } from "../../utils/helpers";
 
 /**
  * Shared modal component to display complete staff information.
@@ -110,7 +111,7 @@ export default function StaffDetailsModal({ member, onClose }) {
         {member.hourlyRate > 0 && (
           <div
             style={{
-              padding: "10px 18px",
+              padding: "12px 18px",
               background: "rgba(230,57,70,0.08)",
               border: "1px solid var(--border-red)",
               borderRadius: 12,
@@ -121,12 +122,12 @@ export default function StaffDetailsModal({ member, onClose }) {
             }}
           >
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--red)", letterSpacing: ".05em" }}>RATE (2 HOURS)</div>
-              <div style={{ fontSize: 16, fontWeight: 800 }}>${member.hourlyRate * 2} / 2 Hours</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--red)", letterSpacing: ".05em", marginBottom: 2 }}>HOURLY RATE (+15%)</div>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>${calcCommissionPrice(member.hourlyRate)} / Hour</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 10, color: "var(--muted2)", fontWeight: 700 }}>MIN. BOOKING</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>2 Hours (${member.hourlyRate * 2})</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--red)", letterSpacing: ".05em", marginBottom: 2 }}>2 HOURS RATE</div>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>${calcCommissionPrice(member.hourlyRate) * 2} / 2 Hours</div>
             </div>
           </div>
         )}

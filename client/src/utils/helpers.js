@@ -57,3 +57,10 @@ export const fmtDur = (m) => {
 
 export const initials = (n) =>
   String(n).split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+export const COMMISSION_RATE = 0.15;
+
+export const calcCommissionPrice = (rate) => {
+  if (!rate || rate <= 0) return 0;
+  return Math.round(rate * (1 + COMMISSION_RATE));
+};
