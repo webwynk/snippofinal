@@ -77,7 +77,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 2 }}>{s.name}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>{s.role}</div>
-                {s.hourlyRate > 0 && <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 6 }}>${s.hourlyRate}/Hour</div>}
+                {s.hourlyRate > 0 && <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 6 }}>${s.hourlyRate * 2} / 2 Hours</div>}
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
@@ -98,7 +98,7 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                       height: 32
                     }}
                   >
-                    ✓ Selected Minimum 2hour ( ${s.hourlyRate > 0 ? `$${s.hourlyRate * 2}` : '200'} )
+                    ✓ Selected Minimum 2hour ( {s.hourlyRate > 0 ? `$${s.hourlyRate * 2}` : ''} )
                   </div>
                 ) : (
                   <button 

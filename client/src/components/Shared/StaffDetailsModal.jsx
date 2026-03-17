@@ -121,8 +121,8 @@ export default function StaffDetailsModal({ member, onClose }) {
             }}
           >
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--red)", letterSpacing: ".05em" }}>HOURLY RATE</div>
-              <div style={{ fontSize: 16, fontWeight: 800 }}>${member.hourlyRate}/Hour</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--red)", letterSpacing: ".05em" }}>RATE (2 HOURS)</div>
+              <div style={{ fontSize: 16, fontWeight: 800 }}>${member.hourlyRate * 2} / 2 Hours</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 10, color: "var(--muted2)", fontWeight: 700 }}>MIN. BOOKING</div>
