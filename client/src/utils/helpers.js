@@ -5,10 +5,15 @@ export const TIMES = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:
 export const STEPS = ["Service", "Staff", "Date & Time", "Details", "Summary", "Payment", "Confirm"];
 export const COLORS = ["#E63946", "#7c3aed", "#0891b2", "#059669", "#f59e0b", "#ec4899"];
 
+export function slugify(name) {
+  return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 export function parsePath(pathname) {
   const p = pathname.replace(/^\/+|\/+$/g, '');
   const parts = p ? p.split('/') : [];
   if (!parts.length || p === '') return { page: 'home', sub: null };
+  if (parts[0] === 'book' && parts[1]) return { page: 'book_service', sub: parts[1] };
   if (parts[0] === 'admin') {
     if (parts.length === 1) return { page: 'admin_login', sub: null };
     if (parts[1] === 'dashboard') return { page: 'admin_dash', sub: parts[2] || 'overview' };
@@ -26,6 +31,7 @@ export function parsePath(pathname) {
 export function buildPath(page, sub) {
   const map = {
     home: '/',
+    book_service: sub ? `/book/${sub}` : '/',
     admin_login: '/admin',
     admin_dash: sub ? `/admin/dashboard/${sub}` : '/admin/dashboard',
     staff_auth: '/staff',

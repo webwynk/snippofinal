@@ -20,6 +20,7 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
     experience: me?.experience || "",
     totalWorkDone: me?.totalWorkDone || 0,
     bio: me?.bio || "",
+    hourlyRate: me?.hourlyRate || 0,
   });
   const [saved, setSaved] = useState({ ...prof });
   const [avail, setAvail] = useState(me?.avail || [true, true, true, true, true, false, false]);
@@ -451,6 +452,48 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
                 >
                   Save Changes
                 </button>
+              </div>
+
+              {/* Hourly Rate card */}
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: ".07em", marginBottom: 11 }}>PRICING</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div>
+                    <label className="lbl">HOURLY RATE ($/hr)</label>
+                    <input
+                      className="inp"
+                      type="number"
+                      min="0"
+                      step="5"
+                      placeholder="e.g. 80"
+                      value={prof.hourlyRate || ""}
+                      onChange={e => setProf({ ...prof, hourlyRate: parseFloat(e.target.value) || 0 })}
+                    />
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                      Price shown to clients = Hourly Rate × Service Duration. Set 0 to use service base price.
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-p btn-sm"
+                    style={{ alignSelf: "flex-start" }}
+                    onClick={async () => {
+                      try {
+                        const updated = await apiRequest("/staff/me/rate", {
+                          method: "PUT",
+                          token,
+                          body: { hourlyRate: prof.hourlyRate },
+                        });
+                        setSaved(p => ({ ...p, hourlyRate: prof.hourlyRate }));
+                        if (me?.id) setAllStaff(p => p.map(s => (s.id === me.id ? { ...s, ...updated } : s)));
+                        toast("Rate saved!", "success");
+                      } catch (e) {
+                        toast(e.message || "Failed to save rate", "error");
+                      }
+                    }}
+                  >
+                    Save Rate
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -34,6 +34,7 @@ function rowToStaff(r) {
     experience: r.experience || "",
     totalWorkDone: r.total_work_done || 0,
     bio: r.bio || "",
+    hourlyRate: parseFloat(r.hourly_rate || 0),
   };
 }
 function rowToPending(r) {
@@ -119,6 +120,9 @@ export async function initStore() {
       body TEXT NOT NULL
     )
   `);
+
+  // Add hourly_rate column to staff if not present (safe migration)
+  await pool.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC DEFAULT 0`);
 
   // Initial templates seed
   const templates = [
@@ -227,13 +231,13 @@ export async function updateData(mutator) {
   if (JSON.stringify(data.staff) !== before.staff) {
     for (const s of data.staff) {
       await pool.query(
-        `INSERT INTO staff (id,name,role,email,initials,color,services,availability,active,profile_image,experience,total_work_done,bio)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        `INSERT INTO staff (id,name,role,email,initials,color,services,availability,active,profile_image,experience,total_work_done,bio,hourly_rate)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
          ON CONFLICT (id) DO UPDATE SET
            name=$2,role=$3,email=$4,initials=$5,color=$6,services=$7,availability=$8,active=$9,
-           profile_image=$10,experience=$11,total_work_done=$12,bio=$13`,
+           profile_image=$10,experience=$11,total_work_done=$12,bio=$13,hourly_rate=$14`,
         [s.id,s.name,s.role,s.email,s.i||"",s.c||"#E63946",s.services||[],s.avail||[],s.active,
-         s.profileImage||"",s.experience||"",s.totalWorkDone||0,s.bio||""]
+         s.profileImage||"",s.experience||"",s.totalWorkDone||0,s.bio||"",s.hourlyRate||0]
       );
     }
     const ids = data.staff.map(s=>s.id);

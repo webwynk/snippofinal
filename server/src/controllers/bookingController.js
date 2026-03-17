@@ -82,6 +82,12 @@ export const createBooking = asyncHandler(async (req, res) => {
     const bookingId = `BK-${await nextCounter("booking")}`;
     const customerName = String(details?.name || user.name || "").trim() || user.name;
 
+    // Dynamic pricing: staff hourlyRate × service duration hours, fall back to service price
+    const durationHours = parseInt(service.dur || "120") / 60;
+    const finalPrice = staffMember.hourlyRate > 0
+      ? Math.round(durationHours * staffMember.hourlyRate)
+      : service.price;
+
     createdBooking = {
       id: bookingId,
       userId: user.id,
@@ -89,7 +95,7 @@ export const createBooking = asyncHandler(async (req, res) => {
       stf: staffMember.name,
       dt: dateLabel,
       t: timeLabel,
-      p: toDollarAmount(service.price),
+      p: toDollarAmount(finalPrice),
       s: "upcoming",
       paid: true,
       u: customerName,

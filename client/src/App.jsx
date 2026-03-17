@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { SVCS, STAFF0, BKGS0 } from "./utils/data";
-import { MNS, DS, DAYS, TIMES, STEPS, COLORS, parsePath, buildPath, cal, fmtDur, initials } from "./utils/helpers";
+import { MNS, DS, DAYS, TIMES, STEPS, COLORS, parsePath, buildPath, cal, fmtDur, initials, slugify } from "./utils/helpers";
 import { apiRequest, readSession, saveSession, clearSession } from "./utils/api";
 import BrandLogo from "./components/Shared/BrandLogo";
 import Toasts, { useToast } from "./components/Shared/Toasts";
@@ -9,6 +9,7 @@ import AuthModal from "./components/Shared/AuthModal";
 import Progress from "./components/Shared/Progress";
 
 import BookingForm from "./components/Booking/BookingForm";
+import BookingPage from "./pages/BookingPage";
 import { PublicHeader, AdminHeader, StaffHeader } from "./components/Layout/Headers";
 
 import HomePage from "./pages/HomePage";
@@ -51,6 +52,7 @@ export default function App(){
   const [stripeKey,setStripeKey]         = useState(null);
   const [booting,setBooting]             = useState(true);
   const [showAuthModal,setShowAuthModal] = useState(false);
+  const [selectedServiceSlug,setSelectedServiceSlug] = useState(null);
   const [embedMode]                      = useState(()=>typeof window!=="undefined"&&new URLSearchParams(window.location.search).get("embed")==="1");
   const embedUrl                         = typeof window!=="undefined"?`${window.location.origin}${window.location.pathname}?embed=1`:"?embed=1";
 
@@ -60,6 +62,7 @@ export default function App(){
       window.history.pushState({page:pg,sub},'',(window.location.search?path+(path.includes('?')?'&':'?')+window.location.search.slice(1):path));
     }
     setPage(pg);
+    if(pg==='book_service')setSelectedServiceSlug(sub);
     if(sub){
       if(pg==='admin_dash')setAdminSec(sub);
       else if(pg==='staff_dash')setStaffTab(sub);
@@ -88,6 +91,7 @@ export default function App(){
     const onPop=()=>{
       const {page:pg,sub}=parsePath(window.location.pathname);
       setPage(pg);
+      if(pg==='book_service')setSelectedServiceSlug(sub);
       if(sub){
         if(pg==='admin_dash')setAdminSec(sub);
         else if(pg==='staff_dash')setStaffTab(sub);
@@ -171,10 +175,13 @@ export default function App(){
         // Honour URL for public pages
         if(urlState.page==='admin_login'){setPage("admin_login");}
         else if(urlState.page==='staff_auth'){setPage("staff_auth");}
-        else{
+        else if(urlState.page==='book_service'&&urlState.sub){
+          setSelectedServiceSlug(urlState.sub);
+          setPage("book_service");
+        }else{
           setPage("home");
           if(window.location.pathname!=='/'&&window.location.pathname.startsWith('/admin')||window.location.pathname.startsWith('/staff')||window.location.pathname.startsWith('/user')){
-            window.history.replaceState({page:'home',sub:null},``,'/')
+            window.history.replaceState({page:'home',sub:null},``,`/`)
           }
         }
       }
@@ -290,13 +297,8 @@ export default function App(){
             onUserAuth={handleUserAuth}
             onGoDash={() => goUserDash("bookings")}
             services={services}
-            staff={staff}
-            bookings={bookings} // For logged in user tracking
-            busySlots={globalBusySlots} // For disabling slots
-            onCreateBooking={createBooking}
+            onBookService={svc => navigate('book_service', slugify(svc.name))}
             embedMode={embedMode}
-            stripeKey={stripeKey}
-            token={token}
             embedHeader={embedMode?<PublicHeader
               user={user}
               onLoginClick={openAuth}

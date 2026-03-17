@@ -145,3 +145,23 @@ export const updateStaffProfile = asyncHandler(async (req, res) => {
 
   res.json(updated);
 });
+
+export const updateStaffRate = asyncHandler(async (req, res) => {
+  const hourlyRate = parseFloat(req.body?.hourlyRate || 0);
+  if (isNaN(hourlyRate) || hourlyRate < 0) throw httpError(400, "Invalid hourly rate");
+
+  let updated;
+  await updateData(async (data) => {
+    const user = data.users.find((item) => item.id === req.authUser.id);
+    if (!user || user.status !== "active") throw httpError(403, "Staff account is not active");
+
+    const staffRef = resolveStaffForUser(data, user);
+    if (!staffRef) throw httpError(404, "Staff profile not found");
+
+    staffRef.hourlyRate = hourlyRate;
+    updated = staffRef;
+    return updated;
+  });
+
+  res.json(updated);
+});

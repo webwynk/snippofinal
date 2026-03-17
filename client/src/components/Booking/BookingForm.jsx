@@ -21,7 +21,7 @@ function S1({ sel, onSel, services }) {
               <div className="sname">{s.name}</div>
               <div className="sdesc">{s.desc}</div>
               <div className="smeta">
-                <span className="sprice">${s.price}</span>
+                <span className="sprice">${s.price}<span style={{fontSize: 10, color: 'var(--muted)', fontWeight: 400, marginLeft: 2}}>/hr</span></span>
                 <span className="sdur">⏱ {fmtDur(s.dur)}</span>
               </div>
             </div>
@@ -76,7 +76,8 @@ function S2({ sel, onSel, staff, svcId, onDetails }) {
                   )}
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 2 }}>{s.name}</div>
-                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 8 }}>{s.role}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>{s.role}</div>
+                {s.hourlyRate > 0 && <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 6 }}>${s.hourlyRate}/hr</div>}
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
@@ -329,7 +330,7 @@ function S5({ svc, stf, date, time }) {
         >
           <span style={{ fontSize: 14, fontWeight: 600 }}>Total</span>
           <span style={{ fontSize: "clamp(24px,5vw,30px)", fontWeight: 900, color: "var(--red)", letterSpacing: "-.03em" }}>
-            ${svc?.price}
+            ${computedPrice(svc, stf)}
           </span>
         </div>
       </div>
@@ -380,7 +381,7 @@ function StripeCheckoutForm({ svc, onSuccess }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <span style={{ fontSize: 14, fontWeight: 600 }}>Amount due</span>
         <span style={{ fontSize: "clamp(22px,5vw,28px)", fontWeight: 900, color: "var(--red)", letterSpacing: "-.03em" }}>
-          ${svc?.price}
+          ${svc?.computedPrice ?? svc?.price}
         </span>
       </div>
       
@@ -418,7 +419,7 @@ function StripeCheckoutForm({ svc, onSuccess }) {
             <span>●</span>
           </span>
         ) : (
-          `🔒 Pay $${svc?.price} Securely`
+          `🔒 Pay $${svc?.computedPrice ?? svc?.price} Securely`
         )}
       </button>
     </form>
@@ -442,7 +443,7 @@ function S6({ svc, onSuccess, stripeKey, token }) {
         const { clientSecret } = await apiRequest("/payments/create-intent", {
           method: "POST",
           token,
-          body: { amount: svc.price, currency: "usd" }
+          body: { amount: svc.computedPrice ?? svc.price, currency: "usd" }
         });
         setClientSecret(clientSecret);
       } catch (err) {
@@ -450,8 +451,9 @@ function S6({ svc, onSuccess, stripeKey, token }) {
         setFetchErr(err.message || "Failed to initialize payment");
       }
     };
-    if (token && svc?.price) initPayment();
-  }, [token, svc?.price]);
+    const amount = computedPrice(svc, null);
+    if (token && amount) initPayment();
+  }, [token, svc?.computedPrice, svc?.price]);
 
   if (!stripeKey) {
     return (
@@ -546,9 +548,18 @@ function S7({ svc, stf, date, time, booking, onDash, onRebook }) {
   );
 }
 
-export default function BookingForm({ user, onNeedAuth, services, staff, bookings, busySlots, onCreateBooking, onGoDash, stripeKey, token }) {
-  const [step, setStep] = useState(0);
-  const [svc, setSvc] = useState(null);
+function computedPrice(svc, stf) {
+  if (!svc) return 0;
+  if (stf?.hourlyRate > 0) {
+    const durationHours = parseInt(svc.dur || '120') / 60;
+    return Math.round(durationHours * stf.hourlyRate);
+  }
+  return svc.price;
+}
+
+export default function BookingForm({ user, onNeedAuth, services, staff, bookings, busySlots, onCreateBooking, onGoDash, onGoHome, stripeKey, token, preselectedService }) {
+  const [step, setStep] = useState(preselectedService ? 1 : 0);
+  const [svc, setSvc] = useState(preselectedService || null);
   const [stf, setStf] = useState(null);
   const [date, setDate] = useState(null);
   const [time, setTime] = useState(null);
@@ -683,7 +694,8 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
     const d = String(date.getDate()).padStart(2, '0');
     const localDateString = `${y}-${m}-${d}`;
 
-    const payload = { serviceId: svc.id, staffId: stf.id, date: localDateString, time, details: det };
+    const price = computedPrice(svc, stf);
+    const payload = { serviceId: svc.id, staffId: stf.id, date: localDateString, time, details: det, overridePrice: price };
     const booking = await onCreateBooking?.(payload);
     setCreatedBooking(booking || null);
     setStep(6);
@@ -697,8 +709,8 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
         {step === 1 && <S2 sel={stf} onSel={setStf} staff={staff} svcId={svc?.id} onDetails={setSelectedStaff} />}
         {step === 2 && <S3 selDate={date} selTime={time} onDate={setDate} onTime={setTime} busySlots={busySlots || bookings} stf={stf} />}
         {step === 3 && <S4 det={det} onChange={setDet} user={user} />}
-        {step === 4 && <S5 svc={svc} stf={stf} date={date} time={time} />}
-        {step === 5 && <S6 svc={svc} onSuccess={createBooking} stripeKey={stripeKey} token={token} />}
+        {step === 4 && <S5 svc={svc ? {...svc, computedPrice: computedPrice(svc, stf)} : svc} stf={stf} date={date} time={time} />}
+        {step === 5 && <S6 svc={svc ? {...svc, computedPrice: computedPrice(svc, stf)} : svc} onSuccess={createBooking} stripeKey={stripeKey} token={token} />}
         {step === 6 && (
           <S7 svc={svc} stf={stf} date={date} time={time} booking={createdBooking} onDash={onGoDash} onRebook={reset} />
         )}
