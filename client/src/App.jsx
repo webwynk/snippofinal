@@ -133,10 +133,19 @@ export default function App(){
 
       if(embedMode){
         if(me?.user?.role==="user"){
-          setUser(me.user);setAdmin(null);setStaffUser(null);setPage("home");
+          setUser(me.user);setAdmin(null);setStaffUser(null);
         }else{
           if(me){clearSession();setToken(null);}
-          setUser(null);setAdmin(null);setStaffUser(null);setPage("home");
+          setUser(null);setAdmin(null);setStaffUser(null);
+        }
+
+        if(urlState.page==='book_service'&&urlState.sub){
+          setSelectedServiceSlug(urlState.sub);
+          setPage("book_service");
+        }else if(urlState.page==='user_dash'){
+          setPage("user_dash");
+        }else{
+          setPage("home");
         }
       }else if(me?.user?.role==="admin"){
         const sec=urlState.page==='admin_dash'?urlState.sub||'overview':'overview';
@@ -253,7 +262,7 @@ export default function App(){
   const goUserDash=(tab="bookings")=>{setUserDashTab(tab);navigate("user_dash",tab);};
 
   useEffect(()=>{
-    if(embedMode&&page!=="home"&&page!=="user_dash"){
+    if(embedMode&&page!=="home"&&page!=="user_dash"&&page!=="book_service"){
       navigate("home");
     }
   },[embedMode,page]);
