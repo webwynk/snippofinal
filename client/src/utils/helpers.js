@@ -60,7 +60,21 @@ export const initials = (n) =>
 
 export const COMMISSION_RATE = 0.15;
 
+
 export const calcCommissionPrice = (rate) => {
   if (!rate || rate <= 0) return 0;
   return Math.round(rate * (1 + COMMISSION_RATE));
 };
+
+export function formatDateForUi(dateInput) {
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "America/New_York",
+  });
+}
