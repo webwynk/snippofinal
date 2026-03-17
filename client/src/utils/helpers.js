@@ -2,7 +2,7 @@ export const MNS = ["January", "February", "March", "April", "May", "June", "Jul
 export const DS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 export const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 export const TIMES = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-export const STEPS = ["Service", "Staff", "Date & Time", "Details", "Summary", "Payment", "Confirm"];
+export const STEPS = ["Service", "Staff", "Date & Time", "Summary", "Payment", "Confirm"];
 export const COLORS = ["#E63946", "#7c3aed", "#0891b2", "#059669", "#f59e0b", "#ec4899"];
 
 export function slugify(name) {

@@ -253,55 +253,16 @@ function S3({ selDate, selTime, onDate, onTime, busySlots, stf }) {
   );
 }
 
-function S4({ det, onChange, user }) {
-  const v = k => det[k] ?? (k === "name" ? user?.name : k === "email" ? user?.email : k === "phone" ? user?.phone : "") ?? "";
-  return (
-    <div className="se" style={{ maxWidth: 500, margin: "0 auto" }}>
+// S4 (Details) removed as requested
 
-      <div className="glass" style={{ padding: "clamp(14px,4vw,24px)" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-          {[
-            { l: "FULL NAME", k: "name", t: "text", ph: "Your full name" },
-            { l: "EMAIL", k: "email", t: "email", ph: "your@email.com" },
-            { l: "PHONE", k: "phone", t: "tel", ph: "+1 (555) 000-0000" },
-          ].map(fi => (
-            <div key={fi.k}>
-              <label className="lbl">{fi.l}</label>
-              <input
-                className="inp"
-                type={fi.t}
-                placeholder={fi.ph}
-                value={v(fi.k)}
-                onChange={e => onChange({ ...det, [fi.k]: e.target.value })}
-              />
-            </div>
-          ))}
-          <div>
-            <label className="lbl">NOTES (Optional)</label>
-            <textarea
-              className="inp"
-              placeholder="Any special requests…"
-              value={det.notes || ""}
-              onChange={e => onChange({ ...det, notes: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function S5({ svc, stf, date, time }) {
+function S5({ svc, stf, date, time, det, onChange }) {
   return (
     <div className="se" style={{ maxWidth: 520, margin: "0 auto" }}>
-      <div style={{ textAlign: "center" }}>
-
-      </div>
       <div className="glass" style={{ padding: "clamp(14px,4vw,24px)" }}>
         <div
           style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: ".07em", marginBottom: 11 }}
         >
-          DETAILS
+          BOOKING SUMMARY
         </div>
         {[
           ["Service", svc?.name],
@@ -318,17 +279,31 @@ function S5({ svc, stf, date, time }) {
             <span className="sval">{v}</span>
           </div>
         ))}
+        
+        <div style={{ marginTop: 20 }}>
+          <label className="lbl" style={{ fontSize: 10, color: "var(--muted)", marginBottom: 6, display: "block" }}>
+            SPECIAL NOTES (OPTIONAL)
+          </label>
+          <textarea
+            className="inp"
+            style={{ minHeight: 80, fontSize: 13 }}
+            placeholder="Any special requests for your session?"
+            value={det.notes || ""}
+            onChange={e => onChange({ ...det, notes: e.target.value })}
+          />
+        </div>
+
         <div
           style={{
-            marginTop: 14,
-            paddingTop: 14,
+            marginTop: 18,
+            paddingTop: 18,
             borderTop: "1px solid var(--border)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Total</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Total Price</span>
           <span style={{ fontSize: "clamp(24px,5vw,30px)", fontWeight: 900, color: "var(--red)", letterSpacing: "-.03em" }}>
             ${computedPrice(svc, stf)}
           </span>
@@ -571,17 +546,17 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
 
   // Persistence for redirect recovery
   useEffect(() => {
-    if (svc || stf || date || time || Object.keys(det).length > 0) {
+    if (svc || stf || date || time) {
       localStorage.setItem("pending_booking", JSON.stringify({
         svcId: svc?.id,
         stfId: stf?.id,
         date: date?.toISOString(),
         time,
-        det,
+        det: { notes: det.notes }, // Only keep notes
         step 
       }));
     }
-  }, [svc, stf, date, time, det, step]);
+  }, [svc, stf, date, time, det.notes, step]);
 
   // Restore state on mount (if no staff selected yet)
   useEffect(() => {
@@ -640,16 +615,10 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
                 setTime(savedTime);
                 setDet(savedDet);
 
-                // Create the booking in our DB
-                const y = new Date(savedDate).getFullYear();
-                const m = String(new Date(savedDate).getMonth() + 1).padStart(2, '0');
-                const d = String(new Date(savedDate).getDate()).padStart(2, '0');
-                const localDateString = `${y}-${m}-${d}`;
-
-                const payload = { serviceId: svcId, staffId: stfId, date: localDateString, time: savedTime, details: savedDet };
+                const payload = { serviceId: svcId, staffId: stfId, date: localDateString, time: savedTime, details: { notes: savedDet?.notes } };
                 const booking = await onCreateBooking?.(payload);
                 setCreatedBooking(booking || null);
-                setStep(6);
+                setStep(5);
                 
                 localStorage.removeItem("pending_booking");
                 // Clean URL
@@ -693,13 +662,13 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
       setStep(1);
       return;
     }
-    if (step === 4) {
+    if (step === 3) {
       if (!user) {
-        onNeedAuth(() => setStep(5));
+        onNeedAuth(() => setStep(4));
         return;
       }
     }
-    setStep(s => Math.min(s + 1, 6));
+    setStep(s => Math.min(s + 1, 5));
   };
 
   const back = () => {
@@ -728,10 +697,17 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
     const localDateString = `${y}-${m}-${d}`;
 
     const price = computedPrice(svc, stf);
-    const payload = { serviceId: svc.id, staffId: stf.id, date: localDateString, time, details: det, overridePrice: price };
+    const payload = { 
+      serviceId: svc.id, 
+      staffId: stf.id, 
+      date: localDateString, 
+      time, 
+      details: { notes: det.notes }, // Only need notes here now
+      overridePrice: price 
+    };
     const booking = await onCreateBooking?.(payload);
     setCreatedBooking(booking || null);
-    setStep(6);
+    setStep(5);
   };
 
   return (
@@ -741,17 +717,16 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
         {step === 0 && !preselectedService && <S1 sel={svc} onSel={handleSvcSel} services={services} />}
         {step === 1 && <S2 sel={stf} onSel={setStf} staff={staff} svcId={svc?.id} onDetails={setSelectedStaff} />}
         {step === 2 && <S3 selDate={date} selTime={time} onDate={setDate} onTime={setTime} busySlots={busySlots || bookings} stf={stf} />}
-        {step === 3 && <S4 det={det} onChange={setDet} user={user} />}
-        {step === 4 && <S5 svc={svc ? {...svc, computedPrice: computedPrice(svc, stf)} : svc} stf={stf} date={date} time={time} />}
-        {step === 5 && <S6 svc={svc ? {...svc, computedPrice: computedPrice(svc, stf)} : svc} onSuccess={createBooking} stripeKey={stripeKey} token={token} />}
-        {step === 6 && (
+        {step === 3 && <S5 svc={svc ? {...svc, computedPrice: computedPrice(svc, stf)} : svc} stf={stf} date={date} time={time} det={det} onChange={setDet} />}
+        {step === 4 && <S6 svc={svc ? {...svc, computedPrice: computedPrice(svc, stf)} : svc} onSuccess={createBooking} stripeKey={stripeKey} token={token} />}
+        {step === 5 && (
           <S7 svc={svc} stf={stf} date={date} time={time} booking={createdBooking} onDash={onGoDash} onRebook={reset} />
         )}
       </div>
       {selectedStaff && (
         <StaffDetailsModal member={selectedStaff} onClose={() => setSelectedStaff(null)} />
       )}
-      {step < 6 && (
+      {step < 5 && (
         <div className="bfoot">
           <button 
             className="btn btn-g btn-sm" 
@@ -761,9 +736,9 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
             ← Back
           </button>
 
-          {step < 5 && (
+          {step < 4 && (
             <button className="btn btn-p btn-sm" onClick={next} disabled={!canNext()}>
-              {step === 4 ? "Pay Now →" : "Continue →"}
+              {step === 3 ? "Pay Now →" : "Continue →"}
             </button>
           )}
         </div>
