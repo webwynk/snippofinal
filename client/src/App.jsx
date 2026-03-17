@@ -313,6 +313,45 @@ export default function App(){
           {showAuthModal && <AuthModal onClose={closeAuth} onAuth={handleUserAuth}/>}
         </>}
 
+        {(page==="book_service") && <>
+          {!embedMode&&<PublicHeader
+            user={user}
+            onLoginClick={openAuth}
+            onSignOut={signOutUser}
+            onGoAdmin={() => navigate("admin_login")}
+            onGoStaff={() => navigate("staff_auth")}
+            onGoDash={() => goUserDash("bookings")}
+            onGoProfile={() => goUserDash("profile")}
+            embedMode={embedMode}
+          />}
+          <BookingPage
+            serviceSlug={selectedServiceSlug}
+            services={services}
+            staff={staff}
+            bookings={bookings}
+            busySlots={globalBusySlots}
+            onCreateBooking={createBooking}
+            onGoDash={() => goUserDash("bookings")}
+            onGoHome={() => navigate("home")}
+            stripeKey={stripeKey}
+            token={token}
+            user={user}
+            onUserAuth={handleUserAuth}
+            embedMode={embedMode}
+            embedHeader={embedMode?<PublicHeader
+              user={user}
+              onLoginClick={openAuth}
+              onSignOut={signOutUser}
+              onGoAdmin={() => navigate("admin_login")}
+              onGoStaff={() => navigate("staff_auth")}
+              onGoDash={() => goUserDash("bookings")}
+              onGoProfile={() => goUserDash("profile")}
+              embedMode={true}
+            />:null}
+          />
+          {showAuthModal && <AuthModal onClose={closeAuth} onAuth={handleUserAuth}/>}
+        </>}
+
         {page==="user_dash" && user && <>
           {!embedMode&&<PublicHeader
             user={user}
