@@ -671,11 +671,14 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
     setStep(s => Math.min(s + 1, 6));
   };
 
-  const back = () => setStep(s => Math.max(s - 1, 0));
+  const back = () => {
+    const minStep = preselectedService ? 1 : 0;
+    setStep(s => Math.max(s - 1, minStep));
+  };
 
   const reset = () => {
-    setStep(0);
-    setSvc(null);
+    setStep(preselectedService ? 1 : 0);
+    if (!preselectedService) setSvc(null);
     setStf(null);
     setDate(null);
     setTime(null);
@@ -719,7 +722,11 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
       )}
       {step < 6 && (
         <div className="bfoot">
-          <button className="btn btn-g btn-sm" onClick={back} disabled={step === 0}>
+          <button 
+            className="btn btn-g btn-sm" 
+            onClick={back} 
+            disabled={step === (preselectedService ? 1 : 0)}
+          >
             ← Back
           </button>
 
