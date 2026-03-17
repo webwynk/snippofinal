@@ -7,12 +7,15 @@ import { uploadStaffAvatar } from "../utils/supabase";
 function BookingDetailModal({ booking, onClose, onUpdateStatus }) {
   if (!booking) return null;
 
-  const isUpcoming = booking.s === "upcoming";
-  
+  const bmap = { upcoming: "bu", completed: "bc", cancelled: "bx", active: "ba" };
+  const hasExtension = (booking.additionalHours || 0) > 0;
+  const originalDur = booking.originalDuration ? parseInt(booking.originalDuration) : 60;
+  const totalDur = originalDur + (booking.additionalHours || 0) * 60;
+
   const now = new Date();
   const todayLabel = formatDateForUi(now);
   const isToday = booking.dt === todayLabel;
-  
+
   const parseTime = (t) => {
     if (!t) return 0;
     const [time, period] = t.split(" ");
@@ -21,59 +24,104 @@ function BookingDetailModal({ booking, onClose, onUpdateStatus }) {
     if (period === "AM" && h === 12) h = 0;
     return h * 60 + (m || 0);
   };
-  
+
   const bookingTimeVal = parseTime(booking.t);
   const currentTimeVal = now.getHours() * 60 + now.getMinutes();
-  const canComplete = isUpcoming && (isToday && currentTimeVal > bookingTimeVal);
+  const timePassed = isToday && currentTimeVal > bookingTimeVal;
+  
+  // Logic: Staff can Cancel anytime if upcoming. 
+  // staff can only COMPLETE if same date and time has passed.
+  // However, user requested "popup like admin" which usually shows all buttons. 
+  // I will show all buttons but maybe dim "Completed" if not yet time? 
+  // Actually, I'll just show all buttons to match the admin experience as requested.
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card glass" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h3 style={{ margin: 0 }}>Booking Details</h3>
-          <button className="btn-close" onClick={onClose}>&times;</button>
+    <div className="mov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 460 }}>
+        <button
+          onClick={onClose}
+          style={{ position: "absolute", top: 11, right: 11, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 19, width: 32, height: 32, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          ✕
+        </button>
+        <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 5, letterSpacing: "-.02em" }}>Booking Details</div>
+        <div style={{ marginBottom: 14, display: "flex", gap: 7, flexWrap: "wrap" }}>
+          <span className={`badge ${bmap[booking.s]}`}>{booking.s[0].toUpperCase() + booking.s.slice(1)}</span>
+          {booking.paid && <span style={{ color: "var(--success)", fontSize: 12, fontWeight: 600 }}>✓ Paid</span>}
         </div>
-        
-        <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-          <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
-            <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Service</div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>{booking.svc}</div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: ".07em", marginBottom: 8 }}>BOOKING INFO</div>
+        <div style={{ marginBottom: 18 }}>
+          {[
+            ["Booking ID", booking.id],
+            ["Customer", booking.u],
+            ["Service", booking.svc],
+            ["Date", booking.dt],
+            ["Time", booking.t],
+            ["Amount", booking.p],
+          ].map(([l, v]) => (
+            <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", fontSize: 13 }}>
+              <span style={{ color: "var(--muted)" }}>{l}</span>
+              <span style={{ fontWeight: 600 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: ".07em", margin: "14px 0 8px" }}>DURATION DETAILS</div>
+        <div style={{ background: "var(--glass)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px" }}>
+          {[
+            ["Original Duration", originalDur ? originalDur + " min" : "—"],
+            ["Additional Hours", hasExtension ? `+${booking.additionalHours} hour${booking.additionalHours > 1 ? "s" : ""}` : "None"],
+            ["Additional Cost", hasExtension ? `$${booking.additionalCost}` : "—"],
+            ["Total Duration", totalDur ? totalDur + " min" : "—"],
+          ].map(([l, v]) => (
+            <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", fontSize: 13 }}>
+              <span style={{ color: "var(--muted)" }}>{l}</span>
+              <span style={{ fontWeight: 600, color: l === "Additional Cost" && hasExtension ? "var(--red)" : "var(--text)" }}>{v}</span>
+            </div>
+          ))}
+          {!hasExtension && <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)", textAlign: "center" }}>No extension on this booking</div>}
+        </div>
+
+        {booking.notes && (
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: ".07em", marginBottom: 8 }}>NOTES</div>
+            <div className="glass-inner" style={{ padding: 12, borderRadius: 10, fontSize: 13, color: "var(--muted2)", lineHeight: 1.5 }}>
+              {booking.notes}
+            </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
-            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Client</div>
-              <div style={{ fontWeight: 700 }}>{booking.u}</div>
-            </div>
-            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Price</div>
-              <div style={{ fontWeight: 700, color: "var(--red)" }}>{booking.p}</div>
-            </div>
+        )}
+
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: ".07em", marginBottom: 10 }}>UPDATE STATUS</div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {["upcoming", "active", "completed", "cancelled"].map(s => {
+              const isActive = booking.s === s;
+              const isComp = s === "completed";
+              const disabled = isComp && !timePassed && booking.s === "upcoming";
+
+              return (
+                <button 
+                  key={s} 
+                  disabled={disabled}
+                  className={`btn btn-sm ${isActive ? "btn-p" : "btn-g"}`} 
+                  style={{ 
+                    flex: 1, 
+                    minWidth: "calc(50% - 4px)",
+                    opacity: disabled ? 0.4 : 1,
+                    cursor: disabled ? "not-allowed" : "pointer",
+                    background: isActive ? "var(--red)" : "rgba(255,255,255,0.03)"
+                  }} 
+                  onClick={() => onUpdateStatus(booking.id, s)}
+                >
+                  {s[0].toUpperCase() + s.slice(1)}
+                </button>
+              );
+            })}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
-            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Date</div>
-              <div>{booking.dt}</div>
-            </div>
-            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Time</div>
-              <div>{booking.t}</div>
-            </div>
-          </div>
-          {booking.notes && (
-            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Notes</div>
-              <div style={{ fontSize: 14 }}>{booking.notes}</div>
-            </div>
+          {(!timePassed && booking.s === "upcoming") && (
+             <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 6 }}>* completion only allowed after session time</div>
           )}
-          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            {isUpcoming && (
-              <button className="btn btn-g" style={{ flex: 1, background: "rgba(230, 57, 70, 0.1)", color: "var(--red)", borderColor: "var(--red)" }}
-                onClick={() => onUpdateStatus(booking.id, "cancelled")}>Cancel Booking</button>
-            )}
-            {canComplete && (
-              <button className="btn btn-p" style={{ flex: 1 }} onClick={() => onUpdateStatus(booking.id, "completed")}>Mark as Completed</button>
-            )}
-          </div>
         </div>
       </div>
     </div>
