@@ -582,6 +582,14 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
     }
   }, [svc, stf, date, time, det, step]);
 
+  // Sync preselected service
+  useEffect(() => {
+    if (preselectedService) {
+      setSvc(preselectedService);
+      if (step === 0) setStep(1);
+    }
+  }, [preselectedService]);
+
   // Handle Stripe Redirect Return
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -705,9 +713,9 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      <Progress step={step} />
+      <Progress step={step} skipService={!!preselectedService} />
       <div>
-        {step === 0 && <S1 sel={svc} onSel={handleSvcSel} services={services} />}
+        {step === 0 && !preselectedService && <S1 sel={svc} onSel={handleSvcSel} services={services} />}
         {step === 1 && <S2 sel={stf} onSel={setStf} staff={staff} svcId={svc?.id} onDetails={setSelectedStaff} />}
         {step === 2 && <S3 selDate={date} selTime={time} onDate={setDate} onTime={setTime} busySlots={busySlots || bookings} stf={stf} />}
         {step === 3 && <S4 det={det} onChange={setDet} user={user} />}
