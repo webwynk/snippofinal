@@ -654,20 +654,19 @@ export default function BookingForm({ user, onNeedAuth, services, staff, booking
 
   const handleSvcSel = s => {
     setSvc(s);
-    if (!user) {
-      onNeedAuth(() => setStep(1));
-    }
   };
 
   const next = () => {
     if (step === 0) {
       if (!svc) return;
-      if (!user) {
-        onNeedAuth(() => setStep(1));
-        return;
-      }
       setStep(1);
       return;
+    }
+    if (step === 4) {
+      if (!user) {
+        onNeedAuth(() => setStep(5));
+        return;
+      }
     }
     setStep(s => Math.min(s + 1, 6));
   };
