@@ -250,14 +250,13 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
 
   res.json(updated);
 
-  // Automation on completion
-  if (status === "completed") {
+  // Automation on completion or cancellation
+  if (status === "completed" || status === "cancelled") {
     // Fetch customer email for notifications
     const data = await readData();
     const customer = data.users.find(u => u.id === updated.userId);
-    const targetEmail = customer?.email || req.authUser.email; // Fallback to authUser if for some reason not found
+    const targetEmail = customer?.email || req.authUser.email;
 
-    // 1. Completion Alert to User, Staff, Admin
     const emailVars = {
       name: updated.u,
       bookingId: updated.id,
@@ -267,25 +266,42 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
       time: updated.t
     };
 
-    // To User (Actual Customer)
-    sendTemplatedEmail("booking_completed", targetEmail, emailVars)
-      .catch(err => console.error("Completion email to user failed", err));
-    
-    // To Review Link (separate email to Customer)
-    sendTemplatedEmail("booking_review_request", targetEmail, {
-      ...emailVars,
-      reviewLinkPath: "/user/dashboard/bookings"
-    }).catch(err => console.error("Review request email failed", err));
+    if (status === "completed") {
+      // To User (Actual Customer)
+      sendTemplatedEmail("booking_completed", targetEmail, emailVars)
+        .catch(err => console.error("Completion email to user failed", err));
+      
+      // To Review Link (separate email to Customer)
+      sendTemplatedEmail("booking_review_request", targetEmail, {
+        ...emailVars,
+        reviewLinkPath: "/user/dashboard/bookings"
+      }).catch(err => console.error("Review request email failed", err));
 
-    // To Staff
-    const staffMember = data.staff.find(s => s.id === updated.staffId);
-    if (staffMember && staffMember.email) {
-      sendTemplatedEmail("booking_completed", staffMember.email, emailVars)
-        .catch(err => console.error("Completion email to staff failed", err));
+      // To Staff
+      const staffMember = data.staff.find(s => s.id === updated.staffId);
+      if (staffMember && staffMember.email) {
+        sendTemplatedEmail("booking_completed", staffMember.email, emailVars)
+          .catch(err => console.error("Completion email to staff failed", err));
+      }
+
+      // To Admin
+      sendTemplatedEmail("booking_completed", process.env.SMTP_FROM_EMAIL, emailVars)
+        .catch(err => console.error("Completion email to admin failed", err));
+    } else if (status === "cancelled") {
+      // To User
+      sendTemplatedEmail("booking_cancelled", targetEmail, emailVars)
+        .catch(err => console.error("Cancellation email to user failed", err));
+
+      // To Staff
+      const staffMember = data.staff.find(s => s.id === updated.staffId);
+      if (staffMember && staffMember.email) {
+        sendTemplatedEmail("booking_cancelled", staffMember.email, emailVars)
+          .catch(err => console.error("Cancellation email to staff failed", err));
+      }
+
+      // To Admin
+      sendTemplatedEmail("booking_cancelled", process.env.SMTP_FROM_EMAIL, emailVars)
+        .catch(err => console.error("Cancellation email to admin failed", err));
     }
-
-    // To Admin
-    sendTemplatedEmail("booking_completed", process.env.SMTP_FROM_EMAIL, emailVars)
-      .catch(err => console.error("Completion email to admin failed", err));
   }
 });
