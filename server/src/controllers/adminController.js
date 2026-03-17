@@ -2,7 +2,7 @@ import { readData, updateData, nextCounter, getPagedBookings, getPagedStaff, get
 import { normalizeEmail, initials, pickColor } from "../utils.js";
 import { asyncHandler, httpError } from "../utils/errorHelpers.js";
 import { userByEmail } from "../utils/userHelpers.js";
-import { sendEmail } from "../utils/mailer.js";
+import { sendEmail, sendTemplatedEmail } from "../utils/mailer.js";
 
 export const getAdminData = asyncHandler(async (req, res) => {
   const tab = req.query.tab || "overview";
