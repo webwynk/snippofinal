@@ -286,24 +286,6 @@ export const deleteUser = asyncHandler(async (req, res) => {
   res.status(204).end();
 });
 
-export const updateBookingStatus = asyncHandler(async (req, res) => {
-  const id = String(req.params.id);
-  const status = String(req.body?.status || "");
-  const allowed = ["upcoming", "active", "completed", "cancelled"];
-
-  if (!allowed.includes(status)) throw httpError(400, "Invalid booking status");
-
-  let updated;
-  await updateData(async (data) => {
-    const booking = data.bookings.find((item) => item.id === id);
-    if (!booking) throw httpError(404, "Booking not found");
-    booking.s = status;
-    updated = booking;
-    return updated;
-  });
-
-  res.json(updated);
-});
 
 export const approvePendingStaff = asyncHandler(async (req, res) => {
   const id = String(req.params.id);

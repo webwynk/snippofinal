@@ -1,11 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { calcCommissionPrice } from "../../utils/helpers";
+import { apiRequest } from "../../utils/api";
 
 /**
  * Shared modal component to display complete staff information.
  */
 export default function StaffDetailsModal({ member, onClose }) {
   const [imgErr, setImgErr] = useState(false);
+  const [activeTab, setActiveTab] = useState("info");
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  useEffect(() => {
+    if (member && activeTab === "reviews") {
+      fetchReviews();
+    }
+  }, [member, activeTab]);
+
+  const fetchReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const res = await apiRequest(`/reviews/staff/${member.id}`);
+      setReviews(res || []);
+    } catch (err) {
+      console.error("Failed to fetch reviews", err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
   const hasImage = member.profileImage && !imgErr;
 
   return (
@@ -64,12 +87,33 @@ export default function StaffDetailsModal({ member, onClose }) {
         </div>
 
         {/* Name & Designation */}
-        <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 3, letterSpacing: "-.02em" }}>
-          {member.name}
-        </div>
-        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>{member.role}</div>
+        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>{member.role}</div>
+        
+        {member.reviewCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12, fontSize: 14 }}>
+            <div style={{ display: "flex", gap: 2 }}>
+              {"⭐".repeat(Math.round(member.rating || 0))}
+            </div>
+            <span style={{ fontWeight: 800, color: "var(--text)" }}>{member.rating?.toFixed(1)}</span>
+            <span style={{ color: "var(--muted2)" }}>({member.reviewCount} reviews)</span>
+          </div>
+        )}
 
-        {/* Stats row */}
+        {/* Tabs */}
+        <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 16 }}>
+          <button 
+            onClick={() => setActiveTab("info")}
+            style={{ flex: 1, padding: "10px 0", background: "none", border: "none", borderBottom: activeTab === "info" ? "2px solid var(--red)" : "none", color: activeTab === "info" ? "var(--red)" : "var(--muted)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+          >Info</button>
+          <button 
+            onClick={() => setActiveTab("reviews")}
+            style={{ flex: 1, padding: "10px 0", background: "none", border: "none", borderBottom: activeTab === "reviews" ? "2px solid var(--red)" : "none", color: activeTab === "reviews" ? "var(--red)" : "var(--muted)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+          >Reviews ({member.reviewCount || 0})</button>
+        </div>
+
+        <div style={{ maxHeight: 400, overflowY: "auto", padding: "2px" }}>
+          {activeTab === "info" ? (
+            <>
         {(member.experience || member.totalWorkDone > 0) && (
           <div
             style={{
@@ -132,35 +176,65 @@ export default function StaffDetailsModal({ member, onClose }) {
           </div>
         )}
 
-        {/* Bio */}
-        {member.bio && (
-          <div
-            style={{
-              background: "var(--glass)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              padding: "12px 16px",
-              fontSize: 13,
-              color: "var(--muted)",
-              lineHeight: 1.7,
-              textAlign: "left",
-              marginBottom: 14,
-            }}
-          >
+          {/* Bio */}
+          {member.bio && (
             <div
               style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "var(--muted2)",
-                letterSpacing: ".06em",
-                marginBottom: 6,
+                background: "var(--glass)",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                padding: "12px 16px",
+                fontSize: 13,
+                color: "var(--muted)",
+                lineHeight: 1.7,
+                textAlign: "left",
+                marginBottom: 14,
               }}
             >
-              BIO
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--muted2)",
+                  letterSpacing: ".06em",
+                  marginBottom: 6,
+                }}
+              >
+                BIO
+              </div>
+              {member.bio}
             </div>
-            {member.bio}
-          </div>
-        )}
+          )}
+            </>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "left" }}>
+              {loadingReviews ? (
+                <div style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>Loading reviews...</div>
+              ) : reviews.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 40, background: "rgba(255,255,255,0.03)", borderRadius: 16 }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>💬</div>
+                  <div style={{ fontWeight: 700 }}>No reviews yet</div>
+                  <p style={{ fontSize: 13, color: "var(--muted)" }}>Be the first to review {member.name} after your session!</p>
+                </div>
+              ) : (
+                reviews.map(r => (
+                  <div key={r.id} style={{ background: "rgba(255,255,255,0.03)", padding: 16, borderRadius: 14, border: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{r.user_name}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{new Date(r.created_at).toLocaleDateString()}</div>
+                      </div>
+                      <div style={{ fontSize: 14 }}>
+                        {"⭐".repeat(r.rating)}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, lineHeight: 1.6, color: "rgba(255,255,255,0.8)" }}>"{r.comment}"</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         <button className="btn btn-g" style={{ width: "100%" }} onClick={onClose}>
           Close

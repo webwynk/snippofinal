@@ -287,6 +287,77 @@ function ExtensionModal({ b, onClose, onUpdated, token, toast }) {
 
 
 
+function ReviewModal({ booking, onClose, onSubmitted, token, toast }) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await apiRequest("/reviews", {
+        method: "POST",
+        token,
+        body: { bookingId: booking.id, rating, comment }
+      });
+      toast("Review submitted! Thank you.", "success");
+      onSubmitted();
+      onClose();
+    } catch (err) {
+      toast("Failed to submit review: " + err.message, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mov" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 400 }}>
+        <button 
+          onClick={onClose} 
+          style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 18 }}
+        >✕</button>
+        <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 5, letterSpacing: "-.02em" }}>Add Review</div>
+        <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 20 }}>How was your session with <strong>{booking.stf}</strong>?</p>
+        
+        <div style={{ textAlign: "center", marginBottom: 25 }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+            {[1, 2, 3, 4, 5].map(star => (
+              <span 
+                key={star} 
+                onClick={() => setRating(star)}
+                style={{ fontSize: 32, cursor: "pointer", filter: rating >= star ? "none" : "grayscale(1) opacity(0.3)", transition: "all .2s" }}
+              >
+                ⭐
+              </span>
+            ))}
+          </div>
+          <div style={{ marginTop: 10, fontWeight: 700, color: "var(--red)" }}>
+            {["", "Poor", "Fair", "Good", "Very Good", "Excellent"][rating]}
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", letterSpacing: ".07em", marginBottom: 8 }}>TELL US MORE</div>
+        <textarea 
+          className="inp" 
+          rows={4} 
+          placeholder="What did you like? Anything we can improve?" 
+          value={comment} 
+          onChange={e => setComment(e.target.value)}
+          style={{ marginBottom: 20, width: "100%", boxSizing: "border-box" }}
+        />
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-g" style={{ flex: 1 }} onClick={onClose}>Not now</button>
+          <button className="btn btn-p" style={{ flex: 2 }} onClick={handleSubmit} disabled={submitting}>
+            {submitting ? "Submitting..." : "Submit Review"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function UserDash({ user, onSignOut, bookings, services, staff, onGoHome, token, onUserUpdated, initialTab = "bookings", embedded = false, embedHeader = null, onTabChange, setBookings }) {
   const [tab, setTab] = useState(initialTab);
   const changeTab = t => {
@@ -301,6 +372,7 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [userBookings, setUserBookings] = useState([]);
+  const [revBooking, setRevBooking] = useState(null);
   const { toasts, toast } = useToast();
   const getPLimit = () => window.innerWidth < 640 ? 6 : 8;
 
@@ -682,7 +754,21 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
                             )}
                           </td>
                           <td>
-                            <span className={`badge ${bmap[b.s]}`}>{b.s[0].toUpperCase() + b.s.slice(1)}</span>
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <span className={`badge ${bmap[b.s]}`}>{b.s[0].toUpperCase() + b.s.slice(1)}</span>
+                              {b.s === "completed" && (
+                                <button 
+                                  className="btn btn-p btn-sm" 
+                                  style={{ padding: "4px 8px", fontSize: 10, background: "var(--success)", border: "none" }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRevBooking(b);
+                                  }}
+                                >
+                                  Add Review
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -698,6 +784,15 @@ export default function UserDash({ user, onSignOut, bookings, services, staff, o
                 b={extBooking} 
                 onClose={() => setExtBooking(null)} 
                 onUpdated={(upd) => setBookings?.(p => p.map(bk => bk.id === upd.id ? { ...bk, ...upd } : bk))}
+                token={token}
+                toast={toast}
+              />
+            )}
+            {revBooking && (
+              <ReviewModal 
+                booking={revBooking} 
+                onClose={() => setRevBooking(null)} 
+                onSubmitted={loadBookings}
                 token={token}
                 toast={toast}
               />

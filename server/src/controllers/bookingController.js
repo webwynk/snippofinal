@@ -221,3 +221,68 @@ export const extendBooking = asyncHandler(async (req, res) => {
     dur: updated.dur
   }).catch(err => console.error('Failed to notify admin of extension', err));
 });
+
+export const updateBookingStatus = asyncHandler(async (req, res) => {
+  const id = String(req.params.id);
+  const status = String(req.body?.status || "");
+  const allowed = ["upcoming", "active", "completed", "cancelled"];
+
+  if (!allowed.includes(status)) throw httpError(400, "Invalid booking status");
+
+  let updated;
+  await updateData(async (data) => {
+    const booking = data.bookings.find((item) => item.id === id);
+    if (!booking) throw httpError(404, "Booking not found");
+    
+    // Safety check for staff
+    if (req.authUser.role === "staff") {
+       const staffRef = data.staff.find(s => s.id === req.authUser.staffId);
+       if (!staffRef || booking.stf !== staffRef.name) {
+         throw httpError(403, "You can only update status for your own bookings");
+       }
+    }
+
+    const oldStatus = booking.s;
+    booking.s = status;
+    updated = { ...booking };
+    return updated;
+  });
+
+  res.json(updated);
+
+  // Automation on completion
+  if (status === "completed") {
+    // 1. Completion Alert to User, Staff, Admin
+    const emailVars = {
+      name: updated.u,
+      bookingId: updated.id,
+      service: updated.svc,
+      staff: updated.stf,
+      date: updated.dt,
+      time: updated.t
+    };
+
+    // To User
+    sendTemplatedEmail("booking_completed", req.authUser.email, emailVars)
+      .catch(err => console.error("Completion email to user failed", err));
+    
+    // To Review Link (separate email)
+    sendTemplatedEmail("booking_review_request", req.authUser.email, {
+      ...emailVars,
+      reviewLinkPath: "/user/dashboard/bookings"
+    }).catch(err => console.error("Review request email failed", err));
+
+    // To Staff
+    readData().then(data => {
+      const staffMember = data.staff.find(s => s.id === updated.staffId);
+      if (staffMember && staffMember.email) {
+        sendTemplatedEmail("booking_completed", staffMember.email, emailVars)
+          .catch(err => console.error("Completion email to staff failed", err));
+      }
+    });
+
+    // To Admin
+    sendTemplatedEmail("booking_completed", process.env.SMTP_FROM_EMAIL, emailVars)
+      .catch(err => console.error("Completion email to admin failed", err));
+  }
+});

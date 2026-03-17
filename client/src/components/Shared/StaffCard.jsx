@@ -71,6 +71,13 @@ export default function StaffCard({ member, onDetails }) {
         <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
           {member.role}
         </div>
+        {member.reviewCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 8, fontSize: 12 }}>
+            <span style={{ color: "#fbbf24" }}>⭐</span>
+            <span style={{ fontWeight: 700, color: "var(--text)" }}>{member.rating?.toFixed(1)}</span>
+            <span style={{ color: "var(--muted2)" }}>({member.reviewCount})</span>
+          </div>
+        )}
         <div
           style={{
             display: "inline-block",

@@ -8,7 +8,6 @@ import {
   updateStaff,
   deleteStaff,
   deleteUser,
-  updateBookingStatus,
   approvePendingStaff,
   rejectPendingStaff,
   getStripeSettings,
@@ -17,6 +16,7 @@ import {
   getTemplates,
   saveTemplate
 } from "../controllers/adminController.js";
+import { updateBookingStatus } from "../controllers/bookingController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();

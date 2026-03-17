@@ -35,6 +35,8 @@ function rowToStaff(r) {
     totalWorkDone: r.total_work_done || 0,
     bio: r.bio || "",
     hourlyRate: parseFloat(r.hourly_rate || 0),
+    rating: parseFloat(r.rating || 0),
+    reviewCount: parseInt(r.review_count || 0),
   };
 }
 function rowToPending(r) {
@@ -123,6 +125,21 @@ export async function initStore() {
 
   // Add hourly_rate column to staff if not present (safe migration)
   await pool.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC DEFAULT 0`);
+  await pool.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS rating NUMERIC DEFAULT 0`);
+  await pool.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0`);
+
+  // Create reviews table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id SERIAL PRIMARY KEY,
+      booking_id INTEGER REFERENCES bookings(id),
+      user_id TEXT REFERENCES users(id),
+      staff_id INTEGER REFERENCES staff(id),
+      rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+      comment TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
   // Initial templates seed
   const templates = [
@@ -136,7 +153,9 @@ export async function initStore() {
     { id: 'staff_account_approved', subject: 'Active: Your Staff Account Approved!', body: '<p>Hello {{name}},</p><p>Congratulations! Your staff account has been approved and activated.</p><p>You can now log in to manage your schedule and start receiving bookings.</p><p>Welcome to the team!</p>' },
     { id: 'booking_extension_user', subject: 'Session Extended - {{bookingId}}', body: '<p>Hello {{name}},</p><p>Your booking <strong>{{bookingId}}</strong> has been successfully extended by {{extraHours}} hour(s).</p><p>New total duration: <strong>{{dur}} minutes</strong>.</p>' },
     { id: 'booking_extension_staff', subject: 'Session Extended: {{bookingId}}', body: '<p>Hello {{staff}},</p><p>An extra {{extraHours}} hour(s) have been added to your session with {{name}}.</p><p>New total duration: <strong>{{dur}} minutes</strong>.</p>' },
-    { id: 'booking_extension_admin', subject: 'Admin Alert: Booking Extended {{bookingId}}', body: '<p>Booking <strong>{{bookingId}}</strong> was extended by {{extraHours}} hour(s).</p><ul><li><strong>Customer:</strong> {{name}}</li><li><strong>Staff:</strong> {{staff}}</li><li><strong>New Total:</strong> {{dur}} min</li></ul>' }
+    { id: 'booking_extension_admin', subject: 'Admin Alert: Booking Extension {{bookingId}}', body: '<p>Booking <strong>{{bookingId}}</strong> was extended by {{extraHours}} hour(s).</p><ul><li><strong>Customer:</strong> {{name}}</li><li><strong>Staff:</strong> {{staff}}</li><li><strong>New Total:</strong> {{dur}} min</li></ul>' },
+    { id: 'booking_completed', subject: 'Booking Completed - {{bookingId}}', body: '<p>Hello,</p><p>The booking <strong>{{bookingId}}</strong> for {{service}} has been marked as completed.</p><div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;"><p><strong>Service:</strong> {{service}}</p><p><strong>Staff:</strong> {{staff}}</p><p><strong>Date:</strong> {{date}}</p><p><strong>Time:</strong> {{time}}</p></div><p>Thank you for using Snippo Booking!</p>' },
+    { id: 'booking_review_request', subject: 'How was your session? Rate {{staff}}', body: '<p>Hello {{name}},</p><p>We hope you enjoyed your session with {{staff}} today!</p><p>Could you take a moment to leave a review? Your feedback helps us maintain high-quality service.</p><div style="text-align: center; margin: 30px 0;"><a href="{{reviewLinkPath}}" style="background: #E63946; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Leave a Review</a></div><p>If the button doesn\'t work, you can also add a review from your dashboard bookings section.</p>' }
   ];
 
   for (const t of templates) {
@@ -231,13 +250,13 @@ export async function updateData(mutator) {
   if (JSON.stringify(data.staff) !== before.staff) {
     for (const s of data.staff) {
       await pool.query(
-        `INSERT INTO staff (id,name,role,email,initials,color,services,availability,active,profile_image,experience,total_work_done,bio,hourly_rate)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        `INSERT INTO staff (id,name,role,email,initials,color,services,availability,active,profile_image,experience,total_work_done,bio,hourly_rate,rating,review_count)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
          ON CONFLICT (id) DO UPDATE SET
            name=$2,role=$3,email=$4,initials=$5,color=$6,services=$7,availability=$8,active=$9,
-           profile_image=$10,experience=$11,total_work_done=$12,bio=$13,hourly_rate=$14`,
+           profile_image=$10,experience=$11,total_work_done=$12,bio=$13,hourly_rate=$14,rating=$15,review_count=$16`,
         [s.id,s.name,s.role,s.email,s.i||"",s.c||"#E63946",s.services||[],s.avail||[],s.active,
-         s.profileImage||"",s.experience||"",s.totalWorkDone||0,s.bio||"",s.hourlyRate||0]
+         s.profileImage||"",s.experience||"",s.totalWorkDone||0,s.bio||"",s.hourlyRate||0,s.rating||0,s.reviewCount||0]
       );
     }
     const ids = data.staff.map(s=>s.id);

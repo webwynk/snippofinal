@@ -1,15 +1,119 @@
 import { useState, useEffect, useRef } from "react";
 import Toasts, { useToast } from "../components/Shared/Toasts";
 import { apiRequest } from "../utils/api";
-import { DAYS, initials } from "../utils/helpers";
+import { DAYS, initials, fmtDur, formatDateForUi } from "../utils/helpers";
 import { uploadStaffAvatar } from "../utils/supabase";
+
+function BookingDetailModal({ booking, onClose, onUpdateStatus }) {
+  if (!booking) return null;
+
+  const isUpcoming = booking.s === "upcoming";
+  
+  const now = new Date();
+  const todayLabel = formatDateForUi(now);
+  const isToday = booking.dt === todayLabel;
+  
+  const parseTime = (t) => {
+    if (!t) return 0;
+    const [time, period] = t.split(" ");
+    let [h, m] = time.split(":").map(Number);
+    if (period === "PM" && h < 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    return h * 60 + (m || 0);
+  };
+  
+  const bookingTimeVal = parseTime(booking.t);
+  const currentTimeVal = now.getHours() * 60 + now.getMinutes();
+  const canComplete = isUpcoming && (isToday && currentTimeVal > bookingTimeVal);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card glass" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0 }}>Booking Details</h3>
+          <button className="btn-close" onClick={onClose}>&times;</button>
+        </div>
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+          <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Service</div>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>{booking.svc}</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
+            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Client</div>
+              <div style={{ fontWeight: 700 }}>{booking.u}</div>
+            </div>
+            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Price</div>
+              <div style={{ fontWeight: 700, color: "var(--red)" }}>{booking.p}</div>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
+            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Date</div>
+              <div>{booking.dt}</div>
+            </div>
+            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Time</div>
+              <div>{booking.t}</div>
+            </div>
+          </div>
+          {booking.notes && (
+            <div className="glass-inner" style={{ padding: 15, borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Notes</div>
+              <div style={{ fontSize: 14 }}>{booking.notes}</div>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            {isUpcoming && (
+              <button className="btn btn-g" style={{ flex: 1, background: "rgba(230, 57, 70, 0.1)", color: "var(--red)", borderColor: "var(--red)" }}
+                onClick={() => onUpdateStatus(booking.id, "cancelled")}>Cancel Booking</button>
+            )}
+            {canComplete && (
+              <button className="btn btn-p" style={{ flex: 1 }} onClick={() => onUpdateStatus(booking.id, "completed")}>Mark as Completed</button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings, services, onSignOut, token, initialTab = 'schedule', onTabChange }) {
   const me = allStaff.find(s => s.email === staffUser?.email) || staffUser?.staffData || staffUser?.staffRef;
   const isPending = me?.status === "pending" || staffUser?.staffData?.status === "pending";
   const [tab, setTab] = useState(initialTab);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   useEffect(() => { setTab(initialTab); }, [initialTab]);
+  useEffect(() => { if (tab === "reviews") fetchReviews(); }, [tab]);
+
+  const fetchReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const res = await apiRequest(`/reviews/staff/${me?.id || staffUser?.staffId}`);
+      setReviews(res || []);
+    } catch (err) {
+      console.error("Failed to fetch reviews", err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const handleUpdateStatus = async (bookingId, status) => {
+    try {
+      await apiRequest(`/bookings/${bookingId}/status`, { method: "PATCH", token, body: { status } });
+      toast(`Booking ${status}!`, "success");
+      setSelectedBooking(null);
+      // Small delay to ensure DB catchup before reload or state update
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err) {
+      toast("Update failed: " + err.message, "error");
+    }
+  };
 
   const changeTab = t => { setTab(t); onTabChange?.(t); };
   const [prof, setProf] = useState({
@@ -74,6 +178,15 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
         </svg>
       ),
       l: "Profile",
+    },
+    {
+      id: "reviews",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+      ),
+      l: "Reviews",
     },
   ];
 
@@ -213,8 +326,15 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
                         <td>{b.svc}</td>
                         <td style={{ color: "var(--muted)", whiteSpace: "nowrap" }}>{b.dt}</td>
                         <td>{b.t}</td>
-                        <td>
+                        <td style={{ display: "flex", gap: 8, alignItems: "center" }}>
                           <span className={`badge ${bmap[b.s]}`}>{b.s[0].toUpperCase() + b.s.slice(1)}</span>
+                          <button 
+                            className="btn btn-g btn-sm" 
+                            style={{ padding: "3px 8px", fontSize: 10, height: "auto" }}
+                            onClick={() => setSelectedBooking(b)}
+                          >
+                            Details
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -504,6 +624,40 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
             `}</style>
           </>
         )}
+        {tab === "reviews" && (
+          <>
+            <h1 className="sh">Client Reviews</h1>
+            <p className="ss">Feedback from your completed sessions</p>
+            {loadingReviews ? (
+              <div style={{ textAlign: "center", padding: 40 }}>Loading reviews...</div>
+            ) : reviews.length === 0 ? (
+              <div className="glass" style={{ padding: 40, textAlign: "center" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>No reviews yet</div>
+                <p style={{ color: "var(--muted)", fontSize: 13 }}>Completed bookings will appear here once clients leave feedback.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 600 }}>
+                {reviews.map(r => (
+                  <div key={r.id} className="glass" style={{ padding: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{r.user_name}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{new Date(r.created_at).toLocaleDateString()}</div>
+                      </div>
+                      <div style={{ fontSize: 14 }}>
+                        {"⭐".repeat(r.rating)}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, lineHeight: 1.6, color: "rgba(255,255,255,0.8)" }}>
+                      "{r.comment}"
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
       <div className="bnav">
         {nav.map(n => (
@@ -514,6 +668,13 @@ export default function StaffPortal({ staffUser, allStaff, setAllStaff, bookings
         ))}
       </div>
       <Toasts toasts={toasts} />
+      {selectedBooking && (
+        <BookingDetailModal 
+          booking={selectedBooking} 
+          onClose={() => setSelectedBooking(null)} 
+          onUpdateStatus={handleUpdateStatus} 
+        />
+      )}
     </div>
   );
 }
